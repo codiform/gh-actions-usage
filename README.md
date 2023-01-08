@@ -3,6 +3,8 @@ GitHub CLI extension for measuring the billable usage of GitHub Actions in the c
 
 *Note that this doesn't include self-hosted runners, which don't incur billable time on GitHub Actions.*
 
+I wrote a version of this extension before the Golang support was available for `gh`, which is still available [here](https://github.com/geoffreywiseman/gh-actuse).
+
 ## Features
 
 Display the usage for the current repository:
