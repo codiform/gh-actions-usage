@@ -41,11 +41,11 @@ func TestGetRepositoryNotFound(t *testing.T) {
 	requestUrl, _ := url.Parse("https://github.com/codiform/gh-actuse")
 	rest.On("Get", "repos/codiform/gh-actuse", mock.Anything).
 		Return(api.HTTPError{
-			StatusCode:  404,
-			RequestURL:  requestUrl,
-			Message:     "Couldn't find repo",
-			OAuthScopes: "gh",
-			Errors:      nil,
+			Errors:     nil,
+			Headers:    nil,
+			Message:    "Couldn't find repo",
+			RequestURL: requestUrl,
+			StatusCode: 404,
 		})
 
 	//Then
@@ -64,11 +64,11 @@ func TestGetRepositoryFailure(t *testing.T) {
 	requestUrl, _ := url.Parse("https://github.com/codiform/gh-actuse")
 	rest.On("Get", "repos/codiform/gh-actuse", mock.Anything).
 		Return(api.HTTPError{
-			StatusCode:  501,
-			RequestURL:  requestUrl,
-			Message:     "Server Error",
-			OAuthScopes: "gh",
-			Errors:      nil,
+			Errors:     nil,
+			Headers:    nil,
+			Message:    "Server Error",
+			RequestURL: requestUrl,
+			StatusCode: 501,
 		})
 
 	//Then

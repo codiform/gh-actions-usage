@@ -28,7 +28,9 @@ MyOrg/MyRepo (3 workflows; 8h 39m):
 # Tasks
 
 ## To Do
-- Feature: Codiform Repo
+- [ ] Admin: Codiform Repo
+- [ ] Test: GetWorkflows
+- [ ] Test: GetWorkflowUsage
 - [ ] Feature: Print Usage for All Workflows in *Current* Repo
   - [ ] If no repo specified, use current repo
   - [ ] If no current repo, explain, and print usage
