@@ -76,3 +76,35 @@ func TestGetRepositoryFailure(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, repo)
 }
+
+func TestGetWorkflows(t *testing.T) {
+	// Given
+	rest, client := getTestClient()
+	repo := Repository{Id: 1, Name: "gh-actions-usage", FullName: "codiform/gh-actions-usage"}
+	rest.On("Get", "repos/codiform/gh-actions-usage/actions/workflows?page=1", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			wp := args.Get(1).(*WorkflowPage)
+			wp.Workflows = append(wp.Workflows, Workflow{Id: 1, Name: "Build", Path: ".github/workflows/build.yml", State: "active"})
+			wp.TotalCount = 1
+		})
+	rest.On("Get", "repos/codiform/gh-actions-usage/actions/workflows?page=2", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			wp := args.Get(1).(*WorkflowPage)
+			wp.TotalCount = 0
+		})
+
+	// When
+	repos, err := client.GetWorkflows(repo)
+
+	// Then
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(repos))
+	assert.Equal(t, "Build", repos[0].Name)
+}
+
+func getTestClient() (*mocks.RestMock, Client) {
+	rest := new(mocks.RestMock)
+	return rest, Client{Rest: rest}
+}

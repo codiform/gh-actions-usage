@@ -14,7 +14,7 @@ GitHub Actions Usage
 MyOrg/MyRepo (2 workflows; 10h 41m):
 - CI (.github/workflows/ci.yaml, active, 10h 29m)
 - Infrastructure (.github/workflows/infra.yaml, active, 3h 10m)
-```
+```       
 
 Display the usage for a specified repository:
 ```
@@ -30,9 +30,6 @@ MyOrg/MyRepo (3 workflows; 8h 39m):
 # Tasks
 
 ## To Do
-- [ ] Admin: Codiform Repo
-- [ ] Test: GetWorkflows
-- [ ] Test: GetWorkflowUsage
 - [ ] Feature: Print Usage for All Workflows in *Current* Repo
   - [ ] If no repo specified, use current repo
   - [ ] If no current repo, explain, and print usage

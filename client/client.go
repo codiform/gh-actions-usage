@@ -45,11 +45,13 @@ func (c *Client) GetWorkflows(repository Repository) ([]Workflow, error) {
 	return workflows, nil
 }
 
+type WorkflowPage struct {
+	TotalCount uint64 `json:"total_count"`
+	Workflows  []Workflow
+}
+
 func (c *Client) GetWorkflowPage(repository Repository, page uint8) ([]Workflow, error) {
-	response := struct {
-		TotalCount uint64 `json:"total_count"`
-		Workflows  []Workflow
-	}{}
+	response := WorkflowPage{}
 	url := fmt.Sprintf("repos/%s/actions/workflows?page=%d", repository.FullName, page)
 	err := c.Rest.Get(url, &response)
 	if err != nil {
