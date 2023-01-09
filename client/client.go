@@ -124,7 +124,7 @@ func (c *Client) GetCurrentRepository() (*Repository, error) {
 	}
 
 	if repo.Host() != "github.com" {
-		return nil, fmt.Errorf("Not sure how to handle host %s", repo.Host())
+		return nil, fmt.Errorf("not sure how to handle host %s", repo.Host())
 	}
 
 	return c.GetRepository(fmt.Sprintf("%s/%s", repo.Owner(), repo.Name()))
