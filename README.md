@@ -9,22 +9,24 @@ I wrote a version of this extension before the Golang support was available for 
 
 Display the usage for the current repository:
 ```
+gh-actions-usage on  main [!+] via 🐹 v1.19.4
+❯ gh actions-usage
 GitHub Actions Usage
 
-MyOrg/MyRepo (2 workflows; 10h 41m):
-- CI (.github/workflows/ci.yaml, active, 10h 29m)
-- Infrastructure (.github/workflows/infra.yaml, active, 3h 10m)
-```       
+codiform/gh-actions-usage (2 workflows; 4h 5m):
+- CI (.github/workflows/ci.yml, active, 4h 3m)
+- release (.github/workflows/release.yml, active, 2m 348ms)
+```
 
 Display the usage for a specified repository:
 ```
-❯ gh actions-usage MyOrg/myrepo
+gh-actions-usage on  main [!+] via 🐹 v1.19.4
+❯ gh actions-usage codiform/gh-actions-usage
 GitHub Actions Usage
 
-MyOrg/MyRepo (3 workflows; 8h 39m):
-- Build (.github/workflows/build.yaml, active, 8h 33m)
-- Deploy (.github/workflows/deploy.yaml, active, 0ms)
-- Push (.github/workflows/push.yaml, active, 6m 0s)
+codiform/gh-actions-usage (2 workflows; 1h 1s):
+- CI (.github/workflows/ci.yml, active, 59m 20s)
+- release (.github/workflows/release.yml, active, 39s 980ms)
 ```
 
 # Tasks
