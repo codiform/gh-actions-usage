@@ -9,13 +9,10 @@ import (
 	"testing"
 )
 
-func TestGetRepositorySuccess(t *testing.T) {
+func TestClient_GetRepository(t *testing.T) {
 	// Given
-	rest := new(mocks.RestMock)
-	client := Client{Rest: rest}
+	rest, client := getTestClient()
 	expectedName := "codiform/gh-actuse"
-
-	// When
 	rest.On("Get", "repos/codiform/gh-actuse", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
@@ -25,19 +22,18 @@ func TestGetRepositorySuccess(t *testing.T) {
 			repo.FullName = "codiform/gh-actuse"
 		})
 
-	// Then
+	// When
 	repo, err := client.GetRepository(expectedName)
+
+	// Then
 	assert.Nil(t, err)
 	assert.Equal(t, repo.FullName, expectedName)
 }
 
-func TestGetRepositoryNotFound(t *testing.T) {
+func TestClient_GetRepository_NotFound(t *testing.T) {
 	// Given
-	rest := new(mocks.RestMock)
-	client := Client{Rest: rest}
+	rest, client := getTestClient()
 	expectedName := "codiform/gh-actuse"
-
-	// When
 	requestUrl, _ := url.Parse("https://github.com/codiform/gh-actuse")
 	rest.On("Get", "repos/codiform/gh-actuse", mock.Anything).
 		Return(api.HTTPError{
@@ -48,19 +44,18 @@ func TestGetRepositoryNotFound(t *testing.T) {
 			StatusCode: 404,
 		})
 
-	//Then
+	// When
 	repo, err := client.GetRepository(expectedName)
+
+	// Then
 	assert.Nil(t, err)
 	assert.Nil(t, repo)
 }
 
-func TestGetRepositoryFailure(t *testing.T) {
+func TestClient_GetRepository_Failure(t *testing.T) {
 	// Given
-	rest := new(mocks.RestMock)
-	client := Client{Rest: rest}
+	rest, client := getTestClient()
 	expectedName := "codiform/gh-actuse"
-
-	// When
 	requestUrl, _ := url.Parse("https://github.com/codiform/gh-actuse")
 	rest.On("Get", "repos/codiform/gh-actuse", mock.Anything).
 		Return(api.HTTPError{
@@ -71,13 +66,15 @@ func TestGetRepositoryFailure(t *testing.T) {
 			StatusCode: 501,
 		})
 
-	//Then
+	// When
 	repo, err := client.GetRepository(expectedName)
+
+	// Then
 	assert.NotNil(t, err)
 	assert.Nil(t, repo)
 }
 
-func TestGetWorkflows(t *testing.T) {
+func TestClient_GetWorkflows(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
 	repo := Repository{Id: 1, Name: "gh-actions-usage", FullName: "codiform/gh-actions-usage"}
@@ -102,6 +99,28 @@ func TestGetWorkflows(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(repos))
 	assert.Equal(t, "Build", repos[0].Name)
+}
+
+func TestClient_GetWorkflowUsage(t *testing.T) {
+	// Given
+	rest, client := getTestClient()
+	repo := Repository{Id: 1, Name: "gh-actions-usage", FullName: "codiform/gh-actions-usage"}
+	flow := Workflow{Id: 2, Name: "CI", Path: "repos/codiform/gh-actions-usage/actions/workflows/2", State: "active"}
+	rest.On("Get", "repos/codiform/gh-actions-usage/actions/workflows/2/timing", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			u := args.Get(1).(*Usage)
+			u.Billable.Windows = &UsageDetails{TotalMs: 4}
+			u.Billable.Ubuntu = &UsageDetails{TotalMs: 180}
+			u.Billable.Macos = &UsageDetails{TotalMs: 16}
+		})
+
+	// When
+	usage, err := client.GetWorkflowUsage(repo, flow)
+
+	// Then
+	assert.Nil(t, err)
+	assert.Equal(t, uint(200), usage.TotalMs())
 }
 
 func getTestClient() (*mocks.RestMock, Client) {

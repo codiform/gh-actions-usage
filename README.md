@@ -30,32 +30,10 @@ MyOrg/MyRepo (3 workflows; 8h 39m):
 # Tasks
 
 ## To Do
-- [ ] Feature: Print Usage for All Workflows in *Current* Repo
-  - [ ] If no repo specified, use current repo
-  - [ ] If no current repo, explain, and print usage
-- [ ] Feature: Print Usage for all repos for named org
-  - All repos / enabled repos?
-- [ ] Feature: Print Usage for multiple named repos/orgs
-- Feature: Print Usage for All Repos for current user
-  - Is this possible?
-- Feature: Print Usage for All Repos for named user
-  - Possible?
-- Feature: Host?
-- Real Readme
-- CLI Options?
-  - Do not print workflows with no usage
-  - Do not print repos with no workflows
-- Option Config?
-  - e.g. a config file that specifies options
-- Print Version?
-  - [embed](https://levelup.gitconnected.com/a-better-way-than-ldflags-to-add-a-build-version-to-your-go-binaries-2258ce419d2d) or ldflags
 - Writeup
   - Go implementation
   - Lessons learned
   - Speed comparison
-
-- Feature: Different Formatters?
-
 
 ## Done
 - Project Skeleton
