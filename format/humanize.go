@@ -2,19 +2,20 @@ package format
 
 import "fmt"
 
-const ms_in_s = 1000
-const ms_in_m = ms_in_s * 60
-const ms_in_h = ms_in_m * 60
+const msInS = 1000
+const msInM = msInS * 60
+const msInH = msInM * 60
 
+// Humanize returns unit milliseconds in a simple human-readable form
 func Humanize(ms uint) string {
 	switch {
-	case ms < ms_in_s:
+	case ms < msInS:
 		return fmt.Sprintf("%dms", ms)
-	case ms < ms_in_m:
-		return fmt.Sprintf("%ds %dms", ms/ms_in_s, ms%ms_in_s)
-	case ms < ms_in_h:
-		return fmt.Sprintf("%dm %ds", ms/ms_in_m, (ms%ms_in_m)/ms_in_s)
+	case ms < msInM:
+		return fmt.Sprintf("%ds %dms", ms/msInS, ms%msInS)
+	case ms < msInH:
+		return fmt.Sprintf("%dm %ds", ms/msInM, (ms%msInM)/msInS)
 	default:
-		return fmt.Sprintf("%dh %dm", ms/ms_in_h, (ms%ms_in_h)/ms_in_m)
+		return fmt.Sprintf("%dh %dm", ms/msInH, (ms%msInH)/msInM)
 	}
 }

@@ -17,7 +17,7 @@ func TestClient_GetRepository(t *testing.T) {
 		Return(nil).
 		Run(func(args mock.Arguments) {
 			repo := args.Get(1).(*Repository)
-			repo.Id = 1
+			repo.ID = 1
 			repo.Name = "gh-actuse"
 			repo.FullName = "codiform/gh-actuse"
 		})
@@ -34,13 +34,13 @@ func TestClient_GetRepository_NotFound(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
 	expectedName := "codiform/gh-actuse"
-	requestUrl, _ := url.Parse("https://github.com/codiform/gh-actuse")
+	requestURL, _ := url.Parse("https://github.com/codiform/gh-actuse")
 	rest.On("Get", "repos/codiform/gh-actuse", mock.Anything).
 		Return(api.HTTPError{
 			Errors:     nil,
 			Headers:    nil,
 			Message:    "Couldn't find repo",
-			RequestURL: requestUrl,
+			RequestURL: requestURL,
 			StatusCode: 404,
 		})
 
@@ -56,13 +56,13 @@ func TestClient_GetRepository_Failure(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
 	expectedName := "codiform/gh-actuse"
-	requestUrl, _ := url.Parse("https://github.com/codiform/gh-actuse")
+	requestURL, _ := url.Parse("https://github.com/codiform/gh-actuse")
 	rest.On("Get", "repos/codiform/gh-actuse", mock.Anything).
 		Return(api.HTTPError{
 			Errors:     nil,
 			Headers:    nil,
 			Message:    "Server Error",
-			RequestURL: requestUrl,
+			RequestURL: requestURL,
 			StatusCode: 501,
 		})
 
@@ -77,18 +77,18 @@ func TestClient_GetRepository_Failure(t *testing.T) {
 func TestClient_GetWorkflows(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
-	repo := Repository{Id: 1, Name: "gh-actions-usage", FullName: "codiform/gh-actions-usage"}
+	repo := Repository{ID: 1, Name: "gh-actions-usage", FullName: "codiform/gh-actions-usage"}
 	rest.On("Get", "repos/codiform/gh-actions-usage/actions/workflows?page=1", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
-			wp := args.Get(1).(*WorkflowPage)
-			wp.Workflows = append(wp.Workflows, Workflow{Id: 1, Name: "Build", Path: ".github/workflows/build.yml", State: "active"})
+			wp := args.Get(1).(*workflowPage)
+			wp.Workflows = append(wp.Workflows, Workflow{ID: 1, Name: "Build", Path: ".github/workflows/build.yml", State: "active"})
 			wp.TotalCount = 1
 		})
 	rest.On("Get", "repos/codiform/gh-actions-usage/actions/workflows?page=2", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
-			wp := args.Get(1).(*WorkflowPage)
+			wp := args.Get(1).(*workflowPage)
 			wp.TotalCount = 0
 		})
 
@@ -104,8 +104,8 @@ func TestClient_GetWorkflows(t *testing.T) {
 func TestClient_GetWorkflowUsage(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
-	repo := Repository{Id: 1, Name: "gh-actions-usage", FullName: "codiform/gh-actions-usage"}
-	flow := Workflow{Id: 2, Name: "CI", Path: "repos/codiform/gh-actions-usage/actions/workflows/2", State: "active"}
+	repo := Repository{ID: 1, Name: "gh-actions-usage", FullName: "codiform/gh-actions-usage"}
+	flow := Workflow{ID: 2, Name: "CI", Path: "repos/codiform/gh-actions-usage/actions/workflows/2", State: "active"}
 	rest.On("Get", "repos/codiform/gh-actions-usage/actions/workflows/2/timing", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
