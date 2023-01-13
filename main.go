@@ -24,7 +24,8 @@ func main() {
 func tryDisplayCurrentRepo() {
 	repo, err := gh.GetCurrentRepository()
 	if repo == nil {
-		fmt.Printf("No repository specified; %s\n", err)
+		fmt.Printf("No current repository: %s\n\n", err)
+		printUsage()
 		return
 	}
 	displayRepoUsage(repo)
@@ -74,4 +75,14 @@ func displayRepoUsage(repo *client.Repository) {
 	for _, line := range lines {
 		fmt.Println(line)
 	}
+}
+
+func printUsage() {
+	fmt.Println("USAGE: gh actions-usage [target]\n\n" +
+		"Gets the usage for all workflows in one or more GitHub repositories.\n\n" +
+		"If target is not specified, actions-usage will attempt to get usage for a git repo in the current working directory.\n" +
+		"Target can be one of:\n" +
+		"- username (e.g. geoffreywiseman)\n" +
+		"- organization (e.g. codiform)\n" +
+		"- repository (e.g. codiform/gh-actions-usage)")
 }
