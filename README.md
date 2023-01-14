@@ -29,6 +29,19 @@ codiform/gh-actions-usage (2 workflows; 1h 1s):
 - release (.github/workflows/release.yml, active, 39s 980ms)
 ```
 
+Display the usage for multiple specified repositories:
+```
+gh-actions-usage on  main [!+] via 🐹 v1.19.4
+❯ gh actions-usage geoffreywiseman/gh-actuse codiform/gh-actions-usage
+GitHub Actions Usage
+
+geoffreywiseman/gh-actuse (0 workflows)
+
+codiform/gh-actions-usage (2 workflows; 0ms):
+- CI (.github/workflows/ci.yml, active, 0ms)
+- release (.github/workflows/release.yml, active, 0ms)
+```
+
 # Tasks
 
 ## To Do
