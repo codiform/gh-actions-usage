@@ -17,7 +17,7 @@ func main() {
 	if len(os.Args) <= 1 {
 		tryDisplayCurrentRepo()
 	} else {
-		tryDisplayAllSpecified(os.Args)
+		tryDisplayAllSpecified(os.Args[1:])
 	}
 }
 
@@ -31,21 +31,19 @@ func tryDisplayCurrentRepo() {
 	displayRepoUsage(repo)
 }
 
-func tryDisplayAllSpecified(names []string) {
-	// TODO: Get Repos by Owner
-	// TODO: Display Each
+func tryDisplayAllSpecified(targets []string) {
+	for _, target := range targets {
+		repo, err := gh.GetRepository(target)
+		if err != nil {
+			panic(err)
+		}
+		if repo == nil {
+			fmt.Printf("Cannot find repo: %s\n", target)
+			return
+		}
 
-	repoName := os.Args[1]
-	repo, err := gh.GetRepository(repoName)
-	if err != nil {
-		panic(err)
+		displayRepoUsage(repo)
 	}
-	if repo == nil {
-		fmt.Printf("Cannot find repo: %s\n", repoName)
-		return
-	}
-
-	displayRepoUsage(repo)
 }
 
 func displayRepoUsage(repo *client.Repository) {
@@ -75,6 +73,7 @@ func displayRepoUsage(repo *client.Repository) {
 	for _, line := range lines {
 		fmt.Println(line)
 	}
+	fmt.Println()
 }
 
 func printUsage() {
