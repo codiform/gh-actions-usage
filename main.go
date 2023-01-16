@@ -73,7 +73,7 @@ func mapRepository(repos repoMap, repoName string) error {
 		return err
 	}
 	if repo == nil {
-		return fmt.Errorf("couldn't find repo: %s", repoName)
+		return fmt.Errorf("unknown repo: %s", repoName)
 	}
 
 	owner := repo.Owner
@@ -91,7 +91,7 @@ func mapOwner(repos repoMap, userName string) error {
 		return err
 	}
 	if user == nil {
-		return fmt.Errorf("Cannot find user: %s", userName)
+		return fmt.Errorf("unknown user: %s", userName)
 	}
 
 	list := repos[user]
@@ -120,7 +120,7 @@ func displayRepoUsage(repo *client.Repository) {
 		return
 	}
 
-	var lines []string = make([]string, 0, len(workflows))
+	var lines = make([]string, 0, len(workflows))
 	var repoTotal uint
 	for _, flow := range workflows {
 		usage, err := gh.GetWorkflowUsage(*repo, flow)

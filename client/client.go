@@ -33,7 +33,7 @@ type Workflow struct {
 // GetWorkflows returns a slice of Workflow instances, one for each workflow in the repository
 func (c *Client) GetWorkflows(repository Repository) ([]Workflow, error) {
 	var page uint8 = 1
-	var workflows []Workflow = make([]Workflow, 0)
+	var workflows = make([]Workflow, 0)
 
 	for {
 		wfp, err := c.getWorkflowPage(repository, page)
@@ -112,7 +112,7 @@ type Repository struct {
 	Owner    *User
 }
 
-// Owner represents the owner of a GitHub Repository, either a User or an Organization
+// User represents a GitHub User that can act as the Owner of a GitHub Repository, which might be an Organization
 type User struct {
 	ID    uint
 	Login string
@@ -151,6 +151,7 @@ func is404(err error) bool {
 	return errors.As(err, &httpError) && httpError.StatusCode == 404
 }
 
+// GetUser returns a User corresponding to the specified name, or nil if the user was not found
 func (c *Client) GetUser(name string) (*User, error) {
 	response := User{}
 	err := c.Rest.Get("users/"+name, &response)
@@ -163,6 +164,7 @@ func (c *Client) GetUser(name string) (*User, error) {
 	return &response, nil
 }
 
+// GetAllRepositories returns a list of repositories for the specified user
 func (c *Client) GetAllRepositories(user *User) ([]*Repository, error) {
 	var path string
 	if user.Type == "Organization" {
@@ -170,10 +172,10 @@ func (c *Client) GetAllRepositories(user *User) ([]*Repository, error) {
 	} else if user.Type == "User" {
 		path = fmt.Sprintf("users/%s/repos", user.Login)
 	} else {
-		return nil, fmt.Errorf("Unknown user type: %s", user.Type)
+		return nil, fmt.Errorf("unknown user type: %s", user.Type)
 	}
 
-	response := []*Repository{}
+	var response []*Repository
 	err := c.Rest.Get(path, &response)
 	if err != nil {
 		if is404(err) {

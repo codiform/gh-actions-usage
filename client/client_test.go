@@ -12,14 +12,14 @@ import (
 func TestClient_GetRepository(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
-	expectedName := "codiform/gh-actuse"
-	rest.On("Get", "repos/codiform/gh-actuse", mock.Anything).
+	expectedName := "codiform/gh-actions-usage"
+	rest.On("Get", "repos/codiform/gh-actions-usage", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
 			repo := args.Get(1).(*Repository)
 			repo.ID = 1
-			repo.Name = "gh-actuse"
-			repo.FullName = "codiform/gh-actuse"
+			repo.Name = "gh-actions-usage"
+			repo.FullName = "codiform/gh-actions-usage"
 		})
 
 	// When
@@ -33,9 +33,9 @@ func TestClient_GetRepository(t *testing.T) {
 func TestClient_GetRepository_NotFound(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
-	expectedName := "codiform/gh-actuse"
-	requestURL, _ := url.Parse("https://github.com/codiform/gh-actuse")
-	rest.On("Get", "repos/codiform/gh-actuse", mock.Anything).
+	expectedName := "codiform/gh-actions-usage"
+	requestURL, _ := url.Parse("https://github.com/codiform/gh-actions-usage")
+	rest.On("Get", "repos/codiform/gh-actions-usage", mock.Anything).
 		Return(api.HTTPError{
 			Errors:     nil,
 			Headers:    nil,
@@ -55,9 +55,9 @@ func TestClient_GetRepository_NotFound(t *testing.T) {
 func TestClient_GetRepository_Failure(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
-	expectedName := "codiform/gh-actuse"
-	requestURL, _ := url.Parse("https://github.com/codiform/gh-actuse")
-	rest.On("Get", "repos/codiform/gh-actuse", mock.Anything).
+	expectedName := "codiform/gh-actions-usage"
+	requestURL, _ := url.Parse("https://github.com/codiform/gh-actions-usage")
+	rest.On("Get", "repos/codiform/gh-actions-usage", mock.Anything).
 		Return(api.HTTPError{
 			Errors:     nil,
 			Headers:    nil,
