@@ -1,7 +1,9 @@
 # GH Actions Usage
-GitHub CLI extension for measuring the billable usage of GitHub Actions in the current billing period.
+GitHub CLI extension for measuring the *billable usage* of GitHub Actions in the *current billing period*.
 
-*Note that this doesn't include self-hosted runners, which don't incur billable time on GitHub Actions.*
+This is all the information that's available through the API currently:
+- I can't go beyond the current billing period
+- I can't see usage minutes that aren't billable, like self-hosted runners, which don't incur billable time on GitHub Actions
 
 I wrote a version of this extension before the Golang support was available for `gh`, which is still available [here](https://github.com/geoffreywiseman/gh-actuse).
 
@@ -42,27 +44,41 @@ codiform/gh-actions-usage (2 workflows; 0ms):
 - release (.github/workflows/release.yml, active, 0ms)
 ```
 
-# Tasks
+Display the usage for all repos of an organization:
+```
+gh-actions-usage on  main [!⇡] via 🐹 v1.19.4 took 2s
+❯ gh actions-usage codiform
+GitHub Actions Usage
 
-## To Do
-- Writeup
-  - Go implementation
-  - Lessons learned
-  - Speed comparison
+codiform/gh-actions-usage (2 workflows; 0ms):
+- CI (.github/workflows/ci.yml, active, 0ms)
+- release (.github/workflows/release.yml, active, 0ms)
+```
 
-## Done
-- Project Skeleton
-  - using `gh extension create --precompiled=go`
-  - editing in GoLand
-- PoC
-  - Print all the workflows in a repo
-  - JSON Unmarshalling with Struct
-  - Print usage for all workflows in a repo
-- Restructuring
-  - Added client package, moved in client code
-  - Added repository check
-- Added Test
-  
+Display the usage for all repos of a user:
+```
+❯ gh actions-usage kkruszewska
+GitHub Actions Usage
+
+kkruszewska/data_polishers_titanic (0 workflows)
+
+kkruszewska/hello-world (0 workflows)
+```
+
+Display the usage for a mix of repos, organizations and users:
+```
+❯ gh actions-usage codiform geoffreywiseman/gh-actuse misaha
+GitHub Actions Usage
+
+codiform/gh-actions-usage (2 workflows; 0ms):
+- CI (.github/workflows/ci.yml, active, 0ms)
+- release (.github/workflows/release.yml, active, 0ms)
+
+geoffreywiseman/gh-actuse (0 workflows)
+
+misaha/curly-octo-tribble (0 workflows)
+```
+ 
 # References
 - GitHub [REST OpenAPI](https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.yaml)
 - GitHub [Rest Docs](https://docs.github.com/en/rest/reference)
