@@ -123,6 +123,71 @@ func TestClient_GetWorkflowUsage(t *testing.T) {
 	assert.Equal(t, uint(200), usage.TotalMs())
 }
 
+// Straightforward Test
+func TestClient_GetUser(t *testing.T) {
+	// Given
+	rest, client := getTestClient()
+	rest.On("Get", "users/codiform", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			u := args.Get(1).(*User)
+			u.ID = 103469606
+			u.Login = "codiform"
+			u.Type = "Organization"
+		})
+
+	// When
+	owner, err := client.GetUser("codiform")
+
+	// Then
+	assert.Nil(t, err)
+	assert.Equal(t, "codiform", owner.Login)
+}
+
+// Not Found
+func TestClient_GetUser_NotFound(t *testing.T) {
+	// Given
+	rest, client := getTestClient()
+	expectedName := "codiform2"
+	requestURL, _ := url.Parse("https://github.com/users/codiform2")
+	rest.On("Get", "users/codiform2", mock.Anything).
+		Return(api.HTTPError{
+			Errors:     nil,
+			Headers:    nil,
+			Message:    "Not Found",
+			RequestURL: requestURL,
+			StatusCode: 404,
+		})
+
+	// When
+	repo, err := client.GetUser(expectedName)
+
+	// Then
+	assert.Nil(t, err)
+	assert.Nil(t, repo)
+}
+
+// Success Case
+func TestClient_GetAllRepositories(t *testing.T) {
+	// Given
+	rest, client := getTestClient()
+	rest.On("Get", "users/geoffreywiseman/repos", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			ars := args.Get(1).(*[]*Repository)
+			*ars = append(*ars, &Repository{ID: 427462569, Name: "gh-actuse", FullName: "geoffreywiseman/gh-actuse"})
+		})
+	owner := &User{ID: 49935, Login: "geoffreywiseman", Type: "User"}
+
+	// When
+	repos, err := client.GetAllRepositories(owner)
+
+	// Then
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(repos))
+	assert.Equal(t, "gh-actuse", repos[0].Name)
+}
+
 func getTestClient() (*mocks.RestMock, Client) {
 	rest := new(mocks.RestMock)
 	return rest, Client{Rest: rest}
