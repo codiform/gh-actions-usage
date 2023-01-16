@@ -5,6 +5,7 @@ import (
 	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"github.com/geoffreywiseman/gh-actions-usage/format"
 	"os"
+	"strings"
 )
 
 var gh client.Client
@@ -32,18 +33,80 @@ func tryDisplayCurrentRepo() {
 }
 
 func tryDisplayAllSpecified(targets []string) {
-	for _, target := range targets {
-		repo, err := gh.GetRepository(target)
-		if err != nil {
-			panic(err)
-		}
-		if repo == nil {
-			fmt.Printf("Cannot find repo: %s\n", target)
-			return
-		}
-
-		displayRepoUsage(repo)
+	repos, err := getRepositories(targets)
+	if err != nil {
+		fmt.Printf("Error getting targets: %s\n\n", err)
+		printUsage()
+		return
 	}
+
+	for _, list := range repos {
+		for _, item := range list {
+			displayRepoUsage(item)
+		}
+	}
+}
+
+type repoMap map[*client.User][]*client.Repository
+
+func getRepositories(targets []string) (repoMap, error) {
+	repos := make(repoMap)
+	for _, target := range targets {
+		if strings.ContainsRune(target, '/') {
+			err := mapRepository(repos, target)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			err := mapOwner(repos, target)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return repos, nil
+}
+
+func mapRepository(repos repoMap, repoName string) error {
+	repo, err := gh.GetRepository(repoName)
+	if err != nil {
+		return err
+	}
+	if repo == nil {
+		return fmt.Errorf("couldn't find repo: %s", repoName)
+	}
+
+	owner := repo.Owner
+	list := repos[owner]
+	if list == nil {
+		list = make([]*client.Repository, 0)
+	}
+	repos[owner] = append(list, repo)
+	return nil
+}
+
+func mapOwner(repos repoMap, userName string) error {
+	user, err := gh.GetUser(userName)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return fmt.Errorf("Cannot find user: %s", userName)
+	}
+
+	list := repos[user]
+	if list == nil {
+		list = make([]*client.Repository, 0)
+	}
+
+	ors, err := gh.GetAllRepositories(user)
+	if err != nil {
+		return err
+	}
+
+	list = append(list, ors...)
+	repos[user] = list
+	return nil
 }
 
 func displayRepoUsage(repo *client.Repository) {

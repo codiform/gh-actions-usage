@@ -109,6 +109,14 @@ type Repository struct {
 	ID       uint
 	Name     string
 	FullName string `json:"full_name"`
+	Owner    *User
+}
+
+// Owner represents the owner of a GitHub Repository, either a User or an Organization
+type User struct {
+	ID    uint
+	Login string
+	Type  string
 }
 
 // GetRepository gets a Repository instance corresponding to the specified fullName
@@ -141,4 +149,37 @@ func (c *Client) GetCurrentRepository() (*Repository, error) {
 func is404(err error) bool {
 	var httpError api.HTTPError
 	return errors.As(err, &httpError) && httpError.StatusCode == 404
+}
+
+func (c *Client) GetUser(name string) (*User, error) {
+	response := User{}
+	err := c.Rest.Get("users/"+name, &response)
+	if err != nil {
+		if is404(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &response, nil
+}
+
+func (c *Client) GetAllRepositories(user *User) ([]*Repository, error) {
+	var path string
+	if user.Type == "Organization" {
+		path = fmt.Sprintf("orgs/%s/repos", user.Login)
+	} else if user.Type == "User" {
+		path = fmt.Sprintf("users/%s/repos", user.Login)
+	} else {
+		return nil, fmt.Errorf("Unknown user type: %s", user.Type)
+	}
+
+	response := []*Repository{}
+	err := c.Rest.Get(path, &response)
+	if err != nil {
+		if is404(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return response, nil
 }
