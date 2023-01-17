@@ -5,14 +5,14 @@ import (
 	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"github.com/geoffreywiseman/gh-actions-usage/format"
 	"os"
+	"runtime/debug"
 	"strings"
 )
 
 var gh client.Client
 
 func main() {
-	fmt.Println("GitHub Actions Usage")
-	fmt.Println()
+	fmt.Printf("GitHub Actions Usage (%s)\n\n", getVersion())
 
 	gh = client.New()
 	if len(os.Args) <= 1 {
@@ -20,6 +20,23 @@ func main() {
 	} else {
 		tryDisplayAllSpecified(os.Args[1:])
 	}
+}
+
+func getVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				hash := setting.Value
+				if len(hash) > 7 {
+					return hash[:7]
+				}
+				if len(hash) > 0 {
+					return hash
+				}
+			}
+		}
+	}
+	return "?"
 }
 
 func tryDisplayCurrentRepo() {
