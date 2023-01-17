@@ -7,7 +7,13 @@ This is all the information that's available through the API currently:
 
 I wrote a version of this extension before the Golang support was available for `gh`, which is still available [here](https://github.com/geoffreywiseman/gh-actuse).
 
-## Features
+## 📦 Installation
+
+1. Install the GitHub CLI - see the [installation instructions](https://github.com/cli/cli#installation).
+1. Installation requires a minimum version (2.0.0) of the the GitHub CLI that supports extensions.
+1. Install this extension: `gh extension install codiform/gh-actions-usage`.
+
+## Usage
 
 Display the usage for the current repository:
 ```
