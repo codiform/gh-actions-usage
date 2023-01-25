@@ -166,17 +166,40 @@ func (c *Client) GetUser(name string) (*User, error) {
 
 // GetAllRepositories returns a list of repositories for the specified user
 func (c *Client) GetAllRepositories(user *User) ([]*Repository, error) {
-	var path string
-	if user.Type == "Organization" {
-		path = fmt.Sprintf("orgs/%s/repos", user.Login)
-	} else if user.Type == "User" {
-		path = fmt.Sprintf("users/%s/repos", user.Login)
-	} else {
-		return nil, fmt.Errorf("unknown user type: %s", user.Type)
-	}
+	var page uint8 = 1
+	var repos = make([]*Repository, 0)
 
+	for {
+		path, err := c.getAllRepositoriesPath(user, page)
+		if err != nil {
+			return nil, err
+		}
+		rp, err := c.getAllRepositoriesPage(path)
+		if err != nil {
+			return nil, err
+		}
+		if len(rp) == 0 {
+			break
+		}
+		repos = append(repos, rp...)
+		page++
+	}
+	return repos, nil
+}
+
+func (c *Client) getAllRepositoriesPath(user *User, page uint8) (string, error) {
+	if user.Type == "Organization" {
+		return fmt.Sprintf("orgs/%s/repos?page=%d", user.Login, page), nil
+	} else if user.Type == "User" {
+		return fmt.Sprintf("users/%s/repos?page=%d", user.Login, page), nil
+	} else {
+		return "", fmt.Errorf("unknown user type: %s", user.Type)
+	}
+}
+
+func (c *Client) getAllRepositoriesPage(pagePath string) ([]*Repository, error) {
 	var response []*Repository
-	err := c.Rest.Get(path, &response)
+	err := c.Rest.Get(pagePath, &response)
 	if err != nil {
 		if is404(err) {
 			return nil, nil

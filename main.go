@@ -157,7 +157,7 @@ func displayRepoUsage(repo *client.Repository) {
 }
 
 func printUsage() {
-	fmt.Println("USAGE: gh actions-usage [target]\n\n" +
+	fmt.Println("USAGE: gh actions-usage [target]...\n\n" +
 		"Gets the usage for all workflows in one or more GitHub repositories.\n\n" +
 		"If target is not specified, actions-usage will attempt to get usage for a git repo in the current working directory.\n" +
 		"Target can be one of:\n" +

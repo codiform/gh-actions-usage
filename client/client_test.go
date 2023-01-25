@@ -171,12 +171,14 @@ func TestClient_GetUser_NotFound(t *testing.T) {
 func TestClient_GetAllRepositories(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
-	rest.On("Get", "users/geoffreywiseman/repos", mock.Anything).
+	rest.On("Get", "users/geoffreywiseman/repos?page=1", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
 			ars := args.Get(1).(*[]*Repository)
 			*ars = append(*ars, &Repository{ID: 427462569, Name: "gh-actuse", FullName: "geoffreywiseman/gh-actuse"})
 		})
+	rest.On("Get", "users/geoffreywiseman/repos?page=2", mock.Anything).
+		Return(nil) //.
 	owner := &User{ID: 49935, Login: "geoffreywiseman", Type: "User"}
 
 	// When
@@ -185,7 +187,9 @@ func TestClient_GetAllRepositories(t *testing.T) {
 	// Then
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(repos))
-	assert.Equal(t, "gh-actuse", repos[0].Name)
+	if len(repos) > 0 {
+		assert.Equal(t, "gh-actuse", repos[0].Name)
+	}
 }
 
 func getTestClient() (*mocks.RestMock, Client) {
