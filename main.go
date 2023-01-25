@@ -1,10 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"github.com/geoffreywiseman/gh-actions-usage/format"
-	"os"
 	"runtime/debug"
 	"strings"
 )
@@ -15,10 +15,16 @@ func main() {
 	fmt.Printf("GitHub Actions Usage (%s)\n\n", getVersion())
 
 	gh = client.New()
-	if len(os.Args) <= 1 {
+	skip := flag.Bool("skip", false, "Skips displaying repositories with no workflows")
+	flag.Parse()
+
+	fmt.Printf("Skip? %t\n", *skip)
+	fmt.Printf("Targets: %v\n", flag.Args())
+
+	if len(flag.Args()) < 1 {
 		tryDisplayCurrentRepo()
 	} else {
-		tryDisplayAllSpecified(os.Args[1:])
+		tryDisplayAllSpecified(*skip, flag.Args())
 	}
 }
 
@@ -46,10 +52,10 @@ func tryDisplayCurrentRepo() {
 		printUsage()
 		return
 	}
-	displayRepoUsage(repo)
+	displayRepoUsage(false, repo)
 }
 
-func tryDisplayAllSpecified(targets []string) {
+func tryDisplayAllSpecified(skip bool, targets []string) {
 	repos, err := getRepositories(targets)
 	if err != nil {
 		fmt.Printf("Error getting targets: %s\n\n", err)
@@ -59,7 +65,7 @@ func tryDisplayAllSpecified(targets []string) {
 
 	for _, list := range repos {
 		for _, item := range list {
-			displayRepoUsage(item)
+			displayRepoUsage(skip, item)
 		}
 	}
 }
@@ -126,14 +132,16 @@ func mapOwner(repos repoMap, userName string) error {
 	return nil
 }
 
-func displayRepoUsage(repo *client.Repository) {
+func displayRepoUsage(skip bool, repo *client.Repository) {
 	workflows, err := gh.GetWorkflows(*repo)
 	if err != nil {
 		panic(err)
 	}
 
 	if len(workflows) == 0 {
-		fmt.Printf("%s (0 workflows)\n\n", repo.FullName)
+		if !skip {
+			fmt.Printf("%s (0 workflows)\n\n", repo.FullName)
+		}
 		return
 	}
 
@@ -157,7 +165,7 @@ func displayRepoUsage(repo *client.Repository) {
 }
 
 func printUsage() {
-	fmt.Println("USAGE: gh actions-usage [target]...\n\n" +
+	fmt.Println("USAGE: gh actions-usage [--skip][target]...\n\n" +
 		"Gets the usage for all workflows in one or more GitHub repositories.\n\n" +
 		"If target is not specified, actions-usage will attempt to get usage for a git repo in the current working directory.\n" +
 		"Target can be one of:\n" +
