@@ -18,9 +18,6 @@ func main() {
 	skip := flag.Bool("skip", false, "Skips displaying repositories with no workflows")
 	flag.Parse()
 
-	fmt.Printf("Skip? %t\n", *skip)
-	fmt.Printf("Targets: %v\n", flag.Args())
-
 	if len(flag.Args()) < 1 {
 		tryDisplayCurrentRepo()
 	} else {
