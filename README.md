@@ -1,3 +1,5 @@
+![Demo](doc/demo.gif)
+
 # GH Actions Usage
 GitHub CLI extension for measuring the *billable usage* of GitHub Actions in the *current billing period*.
 
