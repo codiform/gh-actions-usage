@@ -19,11 +19,14 @@ func (hf humanFormatter) PrintUsage(usage client.RepoUsage) {
 			line := fmt.Sprintf("- %s (%s, %s, %s)", flow.Name, flow.Path, flow.State, Humanize(usage))
 			lines = append(lines, line)
 		}
-		_, _ = fmt.Fprintf(hf.w, "%s (%d workflows; %s):\n", repo.FullName, len(usage[repo]), Humanize(repoTotal))
-		for _, line := range lines {
-			_, _ = fmt.Fprintln(hf.w, line)
+		if len(lines) == 0 {
+			_, _ = fmt.Fprintf(hf.w, "%s (0 workflows; 0ms)\n", repo.FullName)
+		} else {
+			_, _ = fmt.Fprintf(hf.w, "%s (%d workflows; %s):\n", repo.FullName, len(usage[repo]), Humanize(repoTotal))
+			for _, line := range lines {
+				_, _ = fmt.Fprintln(hf.w, line)
+			}
 		}
 		_, _ = fmt.Fprintln(hf.w)
-
 	}
 }

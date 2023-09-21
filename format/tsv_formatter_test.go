@@ -25,3 +25,20 @@ func TestTsvFormatter(t *testing.T) {
 	// Then
 	assert.Equal(t, "Repo\tWorkflow\tMilliseconds\ncodiform/gh-actions-usage\t.github/workflows/DevSecOps.yaml\t2500\n", output.String())
 }
+
+func TestTsvFormatter_Empty(t *testing.T) {
+	// Given
+	var output bytes.Buffer
+	formatter := tsvFormatter{&output}
+
+	wfu := make(client.WorkflowUsage)
+	r := client.Repository{FullName: "kim0/salt-states"}
+	ru := make(client.RepoUsage)
+	ru[&r] = wfu
+
+	// When
+	formatter.PrintUsage(ru)
+
+	// Then
+	assert.Equal(t, "Repo\tWorkflow\tMilliseconds\nkim0/salt-states\tn/a\t0\n", output.String())
+}

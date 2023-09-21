@@ -66,7 +66,7 @@ func tryDisplayCurrentRepo(cfg config) {
 		return
 	}
 	var repoFlowUsage = make(map[*client.Repository]client.WorkflowUsage)
-	r := getRepoUsage(false, repo)
+	r := getRepoUsage(repo)
 	repoFlowUsage[repo] = r
 	cfg.format.PrintUsage(repoFlowUsage)
 }
@@ -81,7 +81,10 @@ func tryDisplayAllSpecified(cfg config, targets []string) {
 	var repoFlowUsage = make(map[*client.Repository]client.WorkflowUsage)
 	for _, list := range repos {
 		for _, item := range list {
-			r := getRepoUsage(cfg.skip, item)
+			r := getRepoUsage(item)
+			if len(r) == 0 && cfg.skip {
+				continue
+			}
 			repoFlowUsage[item] = r
 		}
 	}
@@ -150,7 +153,7 @@ func mapOwner(repos repoMap, userName string) error {
 	return nil
 }
 
-func getRepoUsage(skip bool, repo *client.Repository) client.WorkflowUsage {
+func getRepoUsage(repo *client.Repository) client.WorkflowUsage {
 	workflows, err := gh.GetWorkflows(*repo)
 	if err != nil {
 		panic(err)
@@ -163,7 +166,6 @@ func getRepoUsage(skip bool, repo *client.Repository) client.WorkflowUsage {
 			panic(err)
 		}
 		result[flow] = usage.TotalMs()
-
 	}
 
 	return result
