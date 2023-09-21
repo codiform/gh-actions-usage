@@ -64,7 +64,7 @@ codiform/gh-actions-usage (2 workflows; 0ms):
 ```
 
 Display the usage for all repos of a user:
-```
+```shell
 ❯ gh actions-usage kkruszewska
 GitHub Actions Usage
 
@@ -74,7 +74,7 @@ kkruszewska/hello-world (0 workflows)
 ```
 
 Display the usage for a mix of repos, organizations and users:
-```
+```shell
 ❯ gh actions-usage codiform geoffreywiseman/gh-actuse misaha
 GitHub Actions Usage
 
@@ -86,7 +86,31 @@ geoffreywiseman/gh-actuse (0 workflows)
 
 misaha/curly-octo-tribble (0 workflows)
 ```
- 
+
+Display the usage for a mix of repos using a tab-separated value format (TSV):
+
+```shell
+gh-actions-usage on  feature/formatters [!] via 🐹 v1.21.1 took 2s
+❯ gh actions-usage --output=tsv --skip codiform geoffreywiseman/gh-actuse kim0
+GitHub Actions Usage (3a7cfc0)
+
+Repo	Workflow	Milliseconds
+codiform/gh-actions-usage	.github/workflows/ci.yml	350000
+codiform/gh-actions-usage	.github/workflows/release.yml	2500
+kim0/brave-core	.github/workflows/pull_request.yml	0
+kim0/brave-core	.github/workflows/require-checklist.yml	0
+kim0/brave-core	.github/workflows/set-milestone-from-base-branch.yml	0
+kim0/brave-core	.github/workflows/alert_unsigned_commits.yml	0
+kim0/brave-core	.github/workflows/codeql-analysis.yml	0
+kim0/haven-main	.github/workflows/linux-227.yml	0
+kim0/haven-main	.github/workflows/linux-229.yml	0
+kim0/haven-main	.github/workflows/macos.yml	0
+kim0/haven-main	.github/workflows/windows.yml	0
+kim0/haven-main	.github/workflows/docker-build-push.yml	0
+kim0/haven-offshore	.github/workflows/main.yml	75035
+kim0/terraform-switcher	.github/workflows/release.yml	1239
+```
+
 # References
 - GitHub [REST OpenAPI](https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.yaml)
 - GitHub [Rest Docs](https://docs.github.com/en/rest/reference)
