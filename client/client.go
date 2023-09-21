@@ -30,6 +30,12 @@ type Workflow struct {
 	State string
 }
 
+// WorkflowUsage is a map of usage by Workflow
+type WorkflowUsage map[Workflow]uint
+
+// RepoUsage is a map of WorkflowUsage by Repo
+type RepoUsage map[*Repository]WorkflowUsage
+
 // GetWorkflows returns a slice of Workflow instances, one for each workflow in the repository
 func (c *Client) GetWorkflows(repository Repository) ([]Workflow, error) {
 	var page uint8 = 1

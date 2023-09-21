@@ -5,23 +5,39 @@ import (
 	"fmt"
 	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"github.com/geoffreywiseman/gh-actions-usage/format"
+	"log"
 	"runtime/debug"
 	"strings"
 )
 
 var gh client.Client
 
+type config struct {
+	output string
+	skip   bool
+	format format.Formatter
+}
+
 func main() {
 	fmt.Printf("GitHub Actions Usage (%s)\n\n", getVersion())
 
 	gh = client.New()
-	skip := flag.Bool("skip", false, "Skips displaying repositories with no workflows")
+
+	cfg := &config{}
+	flag.BoolVar(&cfg.skip, "skip", false, "Skips displaying repositories with no workflows")
+	flag.StringVar(&cfg.output, "output", "human", "Output format: human or TSV (machine readable)")
 	flag.Parse()
 
+	var err error
+	cfg.format, err = format.GetFormatter(cfg.output)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	if len(flag.Args()) < 1 {
-		tryDisplayCurrentRepo()
+		tryDisplayCurrentRepo(*cfg)
 	} else {
-		tryDisplayAllSpecified(*skip, flag.Args())
+		tryDisplayAllSpecified(*cfg, flag.Args())
 	}
 }
 
@@ -42,29 +58,37 @@ func getVersion() string {
 	return "?"
 }
 
-func tryDisplayCurrentRepo() {
+func tryDisplayCurrentRepo(cfg config) {
 	repo, err := gh.GetCurrentRepository()
 	if repo == nil {
 		fmt.Printf("No current repository: %s\n\n", err)
-		printUsage()
+		printHelp()
 		return
 	}
-	displayRepoUsage(false, repo)
+	var repoFlowUsage = make(map[*client.Repository]client.WorkflowUsage)
+	r := getRepoUsage(repo)
+	repoFlowUsage[repo] = r
+	cfg.format.PrintUsage(repoFlowUsage)
 }
 
-func tryDisplayAllSpecified(skip bool, targets []string) {
+func tryDisplayAllSpecified(cfg config, targets []string) {
 	repos, err := getRepositories(targets)
 	if err != nil {
 		fmt.Printf("Error getting targets: %s\n\n", err)
-		printUsage()
+		printHelp()
 		return
 	}
-
+	var repoFlowUsage = make(map[*client.Repository]client.WorkflowUsage)
 	for _, list := range repos {
 		for _, item := range list {
-			displayRepoUsage(skip, item)
+			r := getRepoUsage(item)
+			if len(r) == 0 && cfg.skip {
+				continue
+			}
+			repoFlowUsage[item] = r
 		}
 	}
+	cfg.format.PrintUsage(repoFlowUsage)
 }
 
 type repoMap map[*client.User][]*client.Repository
@@ -129,40 +153,26 @@ func mapOwner(repos repoMap, userName string) error {
 	return nil
 }
 
-func displayRepoUsage(skip bool, repo *client.Repository) {
+func getRepoUsage(repo *client.Repository) client.WorkflowUsage {
 	workflows, err := gh.GetWorkflows(*repo)
 	if err != nil {
 		panic(err)
 	}
 
-	if len(workflows) == 0 {
-		if !skip {
-			fmt.Printf("%s (0 workflows)\n\n", repo.FullName)
-		}
-		return
-	}
-
-	var lines = make([]string, 0, len(workflows))
-	var repoTotal uint
+	var result = make(client.WorkflowUsage)
 	for _, flow := range workflows {
 		usage, err := gh.GetWorkflowUsage(*repo, flow)
 		if err != nil {
 			panic(err)
 		}
-		repoTotal += usage.TotalMs()
-		line := fmt.Sprintf("- %s (%s, %s, %s)", flow.Name, flow.Path, flow.State, format.Humanize(usage.TotalMs()))
-		lines = append(lines, line)
+		result[flow] = usage.TotalMs()
 	}
 
-	fmt.Printf("%s (%d workflows; %s): \n", repo.FullName, len(workflows), format.Humanize(repoTotal))
-	for _, line := range lines {
-		fmt.Println(line)
-	}
-	fmt.Println()
+	return result
 }
 
-func printUsage() {
-	fmt.Println("USAGE: gh actions-usage [--skip][target]...\n\n" +
+func printHelp() {
+	fmt.Println("USAGE: gh actions-usage [--output=human|tsv] [--skip] [target]...\n\n" +
 		"Gets the usage for all workflows in one or more GitHub repositories.\n\n" +
 		"If target is not specified, actions-usage will attempt to get usage for a git repo in the current working directory.\n" +
 		"Target can be one of:\n" +
