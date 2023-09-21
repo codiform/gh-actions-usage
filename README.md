@@ -12,8 +12,8 @@ I wrote a version of this extension before the Golang support was available for 
 ## 📦 Installation
 
 1. Install the GitHub CLI - see the [installation instructions](https://github.com/cli/cli#installation).
-1. Installation requires a minimum version (2.0.0) of the the GitHub CLI that supports extensions.
-1. Install this extension: `gh extension install codiform/gh-actions-usage`.
+2. Installation requires a minimum version (2.0.0) of the GitHub CLI that supports extensions.
+3. Install this extension: `gh extension install codiform/gh-actions-usage`.
 
 ## Usage
 
