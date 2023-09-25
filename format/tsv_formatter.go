@@ -2,8 +2,9 @@ package format
 
 import (
 	"fmt"
-	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"io"
+
+	"github.com/geoffreywiseman/gh-actions-usage/client"
 )
 
 type tsvFormatter struct {

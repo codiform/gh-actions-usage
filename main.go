@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/geoffreywiseman/gh-actions-usage/client"
-	"github.com/geoffreywiseman/gh-actions-usage/format"
 	"log"
 	"runtime/debug"
 	"strings"
+
+	"github.com/geoffreywiseman/gh-actions-usage/client"
+	"github.com/geoffreywiseman/gh-actions-usage/format"
 )
 
 var gh client.Client

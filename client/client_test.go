@@ -1,12 +1,13 @@
 package client
 
 import (
+	"net/url"
+	"testing"
+
 	"github.com/cli/go-gh/pkg/api"
 	mocks "github.com/geoffreywiseman/gh-actions-usage/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"net/url"
-	"testing"
 )
 
 func TestClient_GetRepository(t *testing.T) {

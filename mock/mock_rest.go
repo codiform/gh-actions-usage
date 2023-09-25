@@ -1,10 +1,11 @@
 package mock
 
 import (
-	"github.com/stretchr/testify/mock"
-	"golang.org/x/net/context"
 	"io"
 	"net/http"
+
+	"github.com/stretchr/testify/mock"
+	"golang.org/x/net/context"
 )
 
 // RestMock is used for mocking RESTClient in go-gh
