@@ -3,19 +3,20 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/geoffreywiseman/gh-actions-usage/client"
-	"github.com/geoffreywiseman/gh-actions-usage/format"
 	"log"
 	"runtime/debug"
 	"strings"
+
+	"github.com/geoffreywiseman/gh-actions-usage/client"
+	"github.com/geoffreywiseman/gh-actions-usage/format"
 )
 
 var gh client.Client
 
 type config struct {
+	format format.Formatter
 	output string
 	skip   bool
-	format format.Formatter
 }
 
 func main() {
@@ -42,12 +43,13 @@ func main() {
 }
 
 func getVersion() string {
+	const minShaLen = 7
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
 			if setting.Key == "vcs.revision" {
 				hash := setting.Value
-				if len(hash) > 7 {
-					return hash[:7]
+				if len(hash) > minShaLen {
+					return hash[:minShaLen]
 				}
 				if len(hash) > 0 {
 					return hash

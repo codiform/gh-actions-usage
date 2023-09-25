@@ -2,9 +2,10 @@ package format
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestHumanFormatter(t *testing.T) {

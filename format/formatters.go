@@ -2,8 +2,9 @@ package format
 
 import (
 	"fmt"
-	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"os"
+
+	"github.com/geoffreywiseman/gh-actions-usage/client"
 )
 
 var formatters = map[string]Formatter{
