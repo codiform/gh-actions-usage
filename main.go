@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"runtime/debug"
 	"strings"
 
@@ -48,7 +47,9 @@ func main() {
 	var err error
 	cfg.format, err = format.GetFormatter(cfg.output)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Invalid Option: %s\n\n", err)
+		printHelp()
+		return
 	}
 
 	if len(flag.Args()) < 1 {
