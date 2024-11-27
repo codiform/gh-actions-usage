@@ -4,6 +4,5 @@ linters:
     - error
     - unused
   disable:
-    - err113 # TODO: Resolve and Enable
     - testifylint # TODO: Resolve and Enable
     - wrapcheck # TODO: Resolve and Enable

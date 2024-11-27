@@ -37,6 +37,22 @@ type WorkflowUsage map[Workflow]uint
 // RepoUsage is a map of WorkflowUsage by Repo
 type RepoUsage map[*Repository]WorkflowUsage
 
+// UnexpectedUserTypeError is an error when the user type is unexpected
+type UnexpectedUserTypeError string
+
+// Error returns a formatted error message for UnexpectedUserTypeError
+func (e UnexpectedUserTypeError) Error() string {
+	return fmt.Sprintf("Unexpected user type: %s", string(e))
+}
+
+// UnexpectedHostError is an error when the host is unexpected
+type UnexpectedHostError string
+
+// Error returns a formatted error message for UnexpectedHostError
+func (e UnexpectedHostError) Error() string {
+	return fmt.Sprintf("Unexpected host: %s", string(e))
+}
+
 // GetWorkflows returns a slice of Workflow instances, one for each workflow in the repository
 func (c *Client) GetWorkflows(repository Repository) ([]Workflow, error) {
 	var page uint8 = 1
@@ -147,7 +163,7 @@ func (c *Client) GetCurrentRepository() (*Repository, error) {
 	}
 
 	if repo.Host() != "github.com" {
-		return nil, fmt.Errorf("not sure how to handle host %s", repo.Host())
+		return nil, UnexpectedHostError(repo.Host())
 	}
 
 	return c.GetRepository(fmt.Sprintf("%s/%s", repo.Owner(), repo.Name()))
@@ -201,7 +217,7 @@ func (c *Client) getAllRepositoriesPath(user *User, page uint8) (string, error) 
 	case "User":
 		return fmt.Sprintf("users/%s/repos?page=%d", user.Login, page), nil
 	default:
-		return "", fmt.Errorf("unknown user type: %s", user.Type)
+		return "", UnexpectedUserTypeError(user.Type)
 	}
 }
 

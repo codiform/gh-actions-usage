@@ -17,11 +17,19 @@ type Formatter interface {
 	PrintUsage(usage client.RepoUsage)
 }
 
+// UnknownFormatterError is an error when the specified formatter can't be found
+type UnknownFormatterError string
+
+// Error returns a formatted error message for UnknownFormatterError
+func (e UnknownFormatterError) Error() string {
+	return fmt.Sprintf("Unknown formatter: %s", string(e))
+}
+
 // GetFormatter returns a formatter by name, or an error if the name is unknown
 func GetFormatter(name string) (Formatter, error) {
 	f, ok := formatters[name]
 	if !ok {
-		return nil, fmt.Errorf("unknown formatter: %s", name)
+		return nil, UnknownFormatterError(name)
 	}
 	return f, nil
 }

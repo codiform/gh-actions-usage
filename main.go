@@ -19,6 +19,22 @@ type config struct {
 	skip   bool
 }
 
+// UnknownRepoError is an error condition when a repository cannot be found
+type UnknownRepoError string
+
+// Error returns a formatted error message for UnknownRepoError
+func (e UnknownRepoError) Error() string {
+	return fmt.Sprintf("Unknown repository: %s", string(e))
+}
+
+// UnknownUserError is an error condition where the user cannot be found
+type UnknownUserError string
+
+// Error returns a formatted error message for UnknownUserError
+func (e UnknownUserError) Error() string {
+	return fmt.Sprintf("Unknown user: %s", string(e))
+}
+
 func main() {
 	fmt.Printf("GitHub Actions Usage (%s)\n\n", getVersion())
 
@@ -119,7 +135,7 @@ func mapRepository(repos repoMap, repoName string) error {
 		return err
 	}
 	if repo == nil {
-		return fmt.Errorf("unknown repo: %s", repoName)
+		return UnknownRepoError(repoName)
 	}
 
 	owner := repo.Owner
@@ -137,7 +153,7 @@ func mapOwner(repos repoMap, userName string) error {
 		return err
 	}
 	if user == nil {
-		return fmt.Errorf("unknown user: %s", userName)
+		return UnknownUserError(userName)
 	}
 
 	list := repos[user]
