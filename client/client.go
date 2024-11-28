@@ -37,6 +37,22 @@ type WorkflowUsage map[Workflow]uint
 // RepoUsage is a map of WorkflowUsage by Repo
 type RepoUsage map[*Repository]WorkflowUsage
 
+// UnexpectedUserTypeError is an error when the user type is unexpected
+type UnexpectedUserTypeError string
+
+// Error returns a formatted error message for UnexpectedUserTypeError
+func (e UnexpectedUserTypeError) Error() string {
+	return fmt.Sprintf("Unexpected user type: %s", string(e))
+}
+
+// UnexpectedHostError is an error when the host is unexpected
+type UnexpectedHostError string
+
+// Error returns a formatted error message for UnexpectedHostError
+func (e UnexpectedHostError) Error() string {
+	return fmt.Sprintf("Unexpected host: %s", string(e))
+}
+
 // GetWorkflows returns a slice of Workflow instances, one for each workflow in the repository
 func (c *Client) GetWorkflows(repository Repository) ([]Workflow, error) {
 	var page uint8 = 1
@@ -66,7 +82,7 @@ func (c *Client) getWorkflowPage(repository Repository, page uint8) ([]Workflow,
 	url := fmt.Sprintf("repos/%s/actions/workflows?page=%d", repository.FullName, page)
 	err := c.Rest.Get(url, &response)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get workflow page: %w", err)
 	}
 	return response.Workflows, nil
 }
@@ -91,7 +107,7 @@ func (c *Client) GetWorkflowUsage(repository Repository, workflow Workflow) (*Us
 	path := fmt.Sprintf("repos/%s/actions/workflows/%d/timing", repository.FullName, workflow.ID)
 	err := c.Rest.Get(path, &response)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get workflow usage: %w", err)
 	}
 	return &response, nil
 }
@@ -134,7 +150,7 @@ func (c *Client) GetRepository(fullName string) (*Repository, error) {
 		if is404(err) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("could not get repository: %w", err)
 	}
 	return &response, nil
 }
@@ -143,11 +159,11 @@ func (c *Client) GetRepository(fullName string) (*Repository, error) {
 func (c *Client) GetCurrentRepository() (*Repository, error) {
 	repo, err := gh.CurrentRepository()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get current repository: %w", err)
 	}
 
 	if repo.Host() != "github.com" {
-		return nil, fmt.Errorf("not sure how to handle host %s", repo.Host())
+		return nil, UnexpectedHostError(repo.Host())
 	}
 
 	return c.GetRepository(fmt.Sprintf("%s/%s", repo.Owner(), repo.Name()))
@@ -166,7 +182,7 @@ func (c *Client) GetUser(name string) (*User, error) {
 		if is404(err) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("could not get user: %w", err)
 	}
 	return &response, nil
 }
@@ -201,7 +217,7 @@ func (c *Client) getAllRepositoriesPath(user *User, page uint8) (string, error) 
 	case "User":
 		return fmt.Sprintf("users/%s/repos?page=%d", user.Login, page), nil
 	default:
-		return "", fmt.Errorf("unknown user type: %s", user.Type)
+		return "", UnexpectedUserTypeError(user.Type)
 	}
 }
 
@@ -212,7 +228,7 @@ func (c *Client) getAllRepositoriesPage(pagePath string) ([]*Repository, error) 
 		if is404(err) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("could not get repositories: %w", err)
 	}
 	return response, nil
 }

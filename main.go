@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"runtime/debug"
 	"strings"
 
@@ -19,6 +18,22 @@ type config struct {
 	skip   bool
 }
 
+// UnknownRepoError is an error condition when a repository cannot be found
+type UnknownRepoError string
+
+// Error returns a formatted error message for UnknownRepoError
+func (e UnknownRepoError) Error() string {
+	return fmt.Sprintf("Unknown repository: %s", string(e))
+}
+
+// UnknownUserError is an error condition where the user cannot be found
+type UnknownUserError string
+
+// Error returns a formatted error message for UnknownUserError
+func (e UnknownUserError) Error() string {
+	return fmt.Sprintf("Unknown user: %s", string(e))
+}
+
 func main() {
 	fmt.Printf("GitHub Actions Usage (%s)\n\n", getVersion())
 
@@ -32,7 +47,9 @@ func main() {
 	var err error
 	cfg.format, err = format.GetFormatter(cfg.output)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Invalid Option: %s\n\n", err)
+		printHelp()
+		return
 	}
 
 	if len(flag.Args()) < 1 {
@@ -116,10 +133,10 @@ func getRepositories(targets []string) (repoMap, error) {
 func mapRepository(repos repoMap, repoName string) error {
 	repo, err := gh.GetRepository(repoName)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get repository: %w", err)
 	}
 	if repo == nil {
-		return fmt.Errorf("unknown repo: %s", repoName)
+		return UnknownRepoError(repoName)
 	}
 
 	owner := repo.Owner
@@ -134,10 +151,10 @@ func mapRepository(repos repoMap, repoName string) error {
 func mapOwner(repos repoMap, userName string) error {
 	user, err := gh.GetUser(userName)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get user: %w", err)
 	}
 	if user == nil {
-		return fmt.Errorf("unknown user: %s", userName)
+		return UnknownUserError(userName)
 	}
 
 	list := repos[user]
@@ -147,7 +164,7 @@ func mapOwner(repos repoMap, userName string) error {
 
 	ors, err := gh.GetAllRepositories(user)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get repositories: %w", err)
 	}
 
 	list = append(list, ors...)

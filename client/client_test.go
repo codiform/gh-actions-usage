@@ -8,6 +8,7 @@ import (
 	mocks "github.com/geoffreywiseman/gh-actions-usage/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClient_GetRepository(t *testing.T) {
@@ -27,8 +28,8 @@ func TestClient_GetRepository(t *testing.T) {
 	repo, err := client.GetRepository(expectedName)
 
 	// Then
-	assert.Nil(t, err)
-	assert.Equal(t, repo.FullName, expectedName)
+	require.NoError(t, err)
+	assert.Equal(t, expectedName, repo.FullName)
 }
 
 func TestClient_GetRepository_NotFound(t *testing.T) {
@@ -49,7 +50,7 @@ func TestClient_GetRepository_NotFound(t *testing.T) {
 	repo, err := client.GetRepository(expectedName)
 
 	// Then
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Nil(t, repo)
 }
 
@@ -71,7 +72,7 @@ func TestClient_GetRepository_Failure(t *testing.T) {
 	repo, err := client.GetRepository(expectedName)
 
 	// Then
-	assert.NotNil(t, err)
+	require.Error(t, err)
 	assert.Nil(t, repo)
 }
 
@@ -97,8 +98,8 @@ func TestClient_GetWorkflows(t *testing.T) {
 	repos, err := client.GetWorkflows(repo)
 
 	// Then
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(repos))
+	require.NoError(t, err)
+	assert.Len(t, repos, 1)
 	assert.Equal(t, "Build", repos[0].Name)
 }
 
@@ -120,7 +121,7 @@ func TestClient_GetWorkflowUsage(t *testing.T) {
 	usage, err := client.GetWorkflowUsage(repo, flow)
 
 	// Then
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, uint(200), usage.TotalMs())
 }
 
@@ -141,7 +142,7 @@ func TestClient_GetUser(t *testing.T) {
 	owner, err := client.GetUser("codiform")
 
 	// Then
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "codiform", owner.Login)
 }
 
@@ -164,7 +165,7 @@ func TestClient_GetUser_NotFound(t *testing.T) {
 	repo, err := client.GetUser(expectedName)
 
 	// Then
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Nil(t, repo)
 }
 
@@ -186,8 +187,8 @@ func TestClient_GetAllRepositories(t *testing.T) {
 	repos, err := client.GetAllRepositories(owner)
 
 	// Then
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(repos))
+	require.NoError(t, err)
+	assert.Len(t, repos, 1, repos)
 	if len(repos) > 0 {
 		assert.Equal(t, "gh-actuse", repos[0].Name)
 	}
