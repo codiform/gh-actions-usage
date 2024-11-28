@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"fmt"
+
 	"github.com/cli/go-gh"
 	"github.com/cli/go-gh/pkg/api"
 )
@@ -24,10 +25,10 @@ type Client struct {
 
 // Workflow represents a GitHub Actions workflow
 type Workflow struct {
-	ID    uint
 	Name  string
 	Path  string
 	State string
+	ID    uint
 }
 
 // WorkflowUsage is a map of usage by Workflow
@@ -56,8 +57,8 @@ func (c *Client) GetWorkflows(repository Repository) ([]Workflow, error) {
 }
 
 type workflowPage struct {
-	TotalCount uint64 `json:"total_count"`
 	Workflows  []Workflow
+	TotalCount uint64 `json:"total_count"`
 }
 
 func (c *Client) getWorkflowPage(repository Repository, page uint8) ([]Workflow, error) {
@@ -97,7 +98,7 @@ func (c *Client) GetWorkflowUsage(repository Repository, workflow Workflow) (*Us
 
 // TotalMs sums the milliseconds of each UsageDetails instance
 func (u *Usage) TotalMs() uint {
-	var total uint = 0
+	var total uint
 	if u.Billable.Windows != nil {
 		total += u.Billable.Windows.TotalMs
 	}
@@ -112,17 +113,17 @@ func (u *Usage) TotalMs() uint {
 
 // Repository represents a GitHub Repository
 type Repository struct {
-	ID       uint
-	Name     string
-	FullName string `json:"full_name"`
 	Owner    *User
+	FullName string `json:"full_name"`
+	Name     string
+	ID       uint
 }
 
 // User represents a GitHub User that can act as the Owner of a GitHub Repository, which might be an Organization
 type User struct {
-	ID    uint
 	Login string
 	Type  string
+	ID    uint
 }
 
 // GetRepository gets a Repository instance corresponding to the specified fullName
@@ -194,11 +195,12 @@ func (c *Client) GetAllRepositories(user *User) ([]*Repository, error) {
 }
 
 func (c *Client) getAllRepositoriesPath(user *User, page uint8) (string, error) {
-	if user.Type == "Organization" {
+	switch user.Type {
+	case "Organization":
 		return fmt.Sprintf("orgs/%s/repos?page=%d", user.Login, page), nil
-	} else if user.Type == "User" {
+	case "User":
 		return fmt.Sprintf("users/%s/repos?page=%d", user.Login, page), nil
-	} else {
+	default:
 		return "", fmt.Errorf("unknown user type: %s", user.Type)
 	}
 }

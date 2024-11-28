@@ -1,10 +1,11 @@
 package mock
 
 import (
-	"github.com/stretchr/testify/mock"
-	"golang.org/x/net/context"
 	"io"
 	"net/http"
+
+	"github.com/stretchr/testify/mock"
+	"golang.org/x/net/context"
 )
 
 // RestMock is used for mocking RESTClient in go-gh
@@ -13,13 +14,13 @@ type RestMock struct {
 }
 
 // Do is a mock implementation of RESTClient.Do
-func (m *RestMock) Do(method string, path string, body io.Reader, response interface{}) error {
+func (m *RestMock) Do(method, path string, body io.Reader, response interface{}) error {
 	args := m.Called(method, path, body, response)
 	return args.Error(0)
 }
 
 // DoWithContext is a mock implementation of RESTClient.DoWithContext
-func (m *RestMock) DoWithContext(ctx context.Context, method string, path string, body io.Reader, response interface{}) error {
+func (m *RestMock) DoWithContext(ctx context.Context, method, path string, body io.Reader, response interface{}) error {
 	args := m.Called(ctx, method, path, body, response)
 	return args.Error(0)
 }
@@ -55,13 +56,13 @@ func (m *RestMock) Put(path string, body io.Reader, response interface{}) error 
 }
 
 // Request is a mock implementation of RESTClient.Request
-func (m *RestMock) Request(method string, path string, body io.Reader) (*http.Response, error) {
+func (m *RestMock) Request(method, path string, body io.Reader) (*http.Response, error) {
 	args := m.Called(method, path, body)
 	return nil, args.Error(0)
 }
 
 // RequestWithContext is a mock implementation of RESTClient.RequestWithContext
-func (m *RestMock) RequestWithContext(ctx context.Context, method string, path string, body io.Reader) (*http.Response, error) {
+func (m *RestMock) RequestWithContext(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
 	args := m.Called(ctx, method, path, body)
 	return nil, args.Error(0)
 }
