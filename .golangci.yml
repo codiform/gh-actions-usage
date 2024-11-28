@@ -3,4 +3,10 @@ linters:
     - bugs
     - error
     - unused
-  
+    - import
+    - test
+  disable:
+    - depguard
+    - exhaustruct
+    - paralleltest
+    - testpackage

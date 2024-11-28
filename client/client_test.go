@@ -1,7 +1,6 @@
 package client
 
 import (
-	"github.com/stretchr/testify/require"
 	"net/url"
 	"testing"
 
@@ -9,6 +8,7 @@ import (
 	mocks "github.com/geoffreywiseman/gh-actions-usage/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClient_GetRepository(t *testing.T) {
