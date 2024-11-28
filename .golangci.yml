@@ -3,6 +3,4 @@ linters:
     - bugs
     - error
     - unused
-  disable:
-    - wrapcheck # TODO: Resolve and Enable
   

@@ -82,7 +82,7 @@ func (c *Client) getWorkflowPage(repository Repository, page uint8) ([]Workflow,
 	url := fmt.Sprintf("repos/%s/actions/workflows?page=%d", repository.FullName, page)
 	err := c.Rest.Get(url, &response)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get workflow page: %w", err)
 	}
 	return response.Workflows, nil
 }
@@ -107,7 +107,7 @@ func (c *Client) GetWorkflowUsage(repository Repository, workflow Workflow) (*Us
 	path := fmt.Sprintf("repos/%s/actions/workflows/%d/timing", repository.FullName, workflow.ID)
 	err := c.Rest.Get(path, &response)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get workflow usage: %w", err)
 	}
 	return &response, nil
 }
@@ -150,7 +150,7 @@ func (c *Client) GetRepository(fullName string) (*Repository, error) {
 		if is404(err) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("could not get repository: %w", err)
 	}
 	return &response, nil
 }
@@ -159,7 +159,7 @@ func (c *Client) GetRepository(fullName string) (*Repository, error) {
 func (c *Client) GetCurrentRepository() (*Repository, error) {
 	repo, err := gh.CurrentRepository()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get current repository: %w", err)
 	}
 
 	if repo.Host() != "github.com" {
@@ -182,7 +182,7 @@ func (c *Client) GetUser(name string) (*User, error) {
 		if is404(err) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("could not get user: %w", err)
 	}
 	return &response, nil
 }
@@ -228,7 +228,7 @@ func (c *Client) getAllRepositoriesPage(pagePath string) ([]*Repository, error) 
 		if is404(err) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("could not get repositories: %w", err)
 	}
 	return response, nil
 }
