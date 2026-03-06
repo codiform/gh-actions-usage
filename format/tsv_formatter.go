@@ -12,14 +12,22 @@ type tsvFormatter struct {
 }
 
 func (tf tsvFormatter) PrintUsage(usage client.RepoUsage) {
+	summary := summarizeUsage(usage)
 	_, _ = fmt.Fprintf(tf.w, "%s\t%s\t%s\n", "Repo", "Workflow", "Milliseconds")
-	for repo, flowUsage := range usage {
-		if len(flowUsage) == 0 {
-			_, _ = fmt.Fprintf(tf.w, "%s\tn/a\t0\n", repo.FullName)
+	for _, repo := range summary.Repos {
+		if len(repo.Workflows) == 0 {
+			_, _ = fmt.Fprintf(tf.w, "%s\tn/a\t0\n", repo.Repo.FullName)
 		} else {
-			for workflow, usage := range flowUsage {
-				_, _ = fmt.Fprintf(tf.w, "%s\t%s\t%d\n", repo.FullName, workflow.Path, usage)
+			for _, workflow := range repo.Workflows {
+				_, _ = fmt.Fprintf(tf.w, "%s\t%s\t%d\n", repo.Repo.FullName, workflow.Workflow.Path, workflow.Usage)
 			}
 		}
 	}
+	if summary.RepoCount <= 1 {
+		return
+	}
+	for _, owner := range summary.Owners {
+		_, _ = fmt.Fprintf(tf.w, "%s\tTOTAL\t%d\n", owner.Owner, owner.Total)
+	}
+	_, _ = fmt.Fprintf(tf.w, "ALL TARGETS\tTOTAL\t%d\n", summary.Total)
 }
