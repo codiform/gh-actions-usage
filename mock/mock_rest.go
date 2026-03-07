@@ -1,3 +1,4 @@
+// Package mock provides test mock implementations for the gh-actions-usage client interfaces.
 package mock
 
 import (
@@ -14,43 +15,43 @@ type RestMock struct {
 }
 
 // Do is a mock implementation of RESTClient.Do
-func (m *RestMock) Do(method, path string, body io.Reader, response interface{}) error {
+func (m *RestMock) Do(method, path string, body io.Reader, response any) error {
 	args := m.Called(method, path, body, response)
 	return args.Error(0) //nolint:wrapcheck
 }
 
 // DoWithContext is a mock implementation of RESTClient.DoWithContext
-func (m *RestMock) DoWithContext(ctx context.Context, method, path string, body io.Reader, response interface{}) error {
+func (m *RestMock) DoWithContext(ctx context.Context, method, path string, body io.Reader, response any) error {
 	args := m.Called(ctx, method, path, body, response)
 	return args.Error(0) //nolint:wrapcheck
 }
 
 // Delete is a mock implementation of RESTClient.Delete
-func (m *RestMock) Delete(path string, response interface{}) error {
+func (m *RestMock) Delete(path string, response any) error {
 	args := m.Called(path, response)
 	return args.Error(0) //nolint:wrapcheck
 }
 
 // Get is a mock implementation of RESTClient.Get
-func (m *RestMock) Get(path string, response interface{}) error {
+func (m *RestMock) Get(path string, response any) error {
 	args := m.Called(path, response)
 	return args.Error(0) //nolint:wrapcheck
 }
 
 // Patch is a mock implementation of RESTClient.Patch
-func (m *RestMock) Patch(path string, body io.Reader, response interface{}) error {
+func (m *RestMock) Patch(path string, body io.Reader, response any) error {
 	args := m.Called(path, body, response)
 	return args.Error(0) //nolint:wrapcheck
 }
 
 // Post is a mock implementation of RESTClient.Post
-func (m *RestMock) Post(path string, body io.Reader, response interface{}) error {
+func (m *RestMock) Post(path string, body io.Reader, response any) error {
 	args := m.Called(path, body, response)
 	return args.Error(0) //nolint:wrapcheck
 }
 
 // Put is a mock implementation of RESTClient.Put
-func (m *RestMock) Put(path string, body io.Reader, response interface{}) error {
+func (m *RestMock) Put(path string, body io.Reader, response any) error {
 	args := m.Called(path, body, response)
 	return args.Error(0) //nolint:wrapcheck
 }

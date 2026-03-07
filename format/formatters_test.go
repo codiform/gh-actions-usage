@@ -9,7 +9,7 @@ import (
 func TestGetFormatters(t *testing.T) {
 	type test struct {
 		name         string
-		expectedType interface{}
+		expectedType any
 	}
 	tests := []test{
 		{name: "human", expectedType: humanFormatter{}},
