@@ -1,12 +1,12 @@
 module github.com/geoffreywiseman/gh-actions-usage
 
-go 1.21
+go 1.25
 
-toolchain go1.23.3
+toolchain go1.26.1
 
 require (
 	github.com/cli/go-gh v1.2.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.31.0
 )
 

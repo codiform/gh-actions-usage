@@ -1,8 +1,10 @@
+// Package client provides a GitHub API client for the gh-actions-usage extension.
 package client
 
 import (
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/cli/go-gh"
 	"github.com/cli/go-gh/pkg/api"
@@ -42,7 +44,7 @@ type UnexpectedUserTypeError string
 
 // Error returns a formatted error message for UnexpectedUserTypeError
 func (e UnexpectedUserTypeError) Error() string {
-	return fmt.Sprintf("Unexpected user type: %s", string(e))
+	return "Unexpected user type: " + string(e)
 }
 
 // UnexpectedHostError is an error when the host is unexpected
@@ -50,7 +52,7 @@ type UnexpectedHostError string
 
 // Error returns a formatted error message for UnexpectedHostError
 func (e UnexpectedHostError) Error() string {
-	return fmt.Sprintf("Unexpected host: %s", string(e))
+	return "Unexpected host: " + string(e)
 }
 
 // GetWorkflows returns a slice of Workflow instances, one for each workflow in the repository
@@ -171,7 +173,7 @@ func (c *Client) GetCurrentRepository() (*Repository, error) {
 
 func is404(err error) bool {
 	var httpError api.HTTPError
-	return errors.As(err, &httpError) && httpError.StatusCode == 404
+	return errors.As(err, &httpError) && httpError.StatusCode == http.StatusNotFound
 }
 
 // GetUser returns a User corresponding to the specified name, or nil if the user was not found
