@@ -1,3 +1,4 @@
+// Package main is the entry point for the gh-actions-usage extension.
 package main
 
 import (
@@ -23,7 +24,7 @@ type UnknownRepoError string
 
 // Error returns a formatted error message for UnknownRepoError
 func (e UnknownRepoError) Error() string {
-	return fmt.Sprintf("Unknown repository: %s", string(e))
+	return "Unknown repository: " + string(e)
 }
 
 // UnknownUserError is an error condition where the user cannot be found
@@ -31,7 +32,7 @@ type UnknownUserError string
 
 // Error returns a formatted error message for UnknownUserError
 func (e UnknownUserError) Error() string {
-	return fmt.Sprintf("Unknown user: %s", string(e))
+	return "Unknown user: " + string(e)
 }
 
 func main() {

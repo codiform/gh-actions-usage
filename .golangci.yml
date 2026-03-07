@@ -1,49 +1,40 @@
 version: "2"
 linters:
-  default: standard
-  enable:
-    # bugs preset
-    - asasalint
-    - asciicheck
-    - bidichk
-    - bodyclose
-    - contextcheck
-    - durationcheck
-    - errchkjson
-    - errorlint
-    - exhaustive
-    - gocheckcompilerdirectives
-    - gochecksumtype
-    - gosec
-    - gosmopolitan
-    - loggercheck
-    - makezero
-    - musttag
-    - nilerr
-    - nilnesserr
-    - noctx
-    - protogetter
-    - reassign
-    - recvcheck
-    - rowserrcheck
-    - spancheck
-    - sqlclosecheck
-    - testifylint
-    - zerologlint
-    # error preset
-    - err113
-    - wrapcheck
-    # unused preset
-    - unparam
-    # import preset (gci/goimports removed in v2; gomodguard remains)
-    - gomodguard
-    # test preset (tenv replaced by usetesting)
-    - testableexamples
-    - thelper
-    - tparallel
-    - usetesting
+  default: all
   disable:
+    # no import restrictions needed for this project
     - depguard
+    # don't require all struct fields to be initialized
     - exhaustruct
+    # fmt.Printf/Println are appropriate for a CLI tool
+    - forbidigo
+    # standard testify mock pattern in tests
+    - forcetypeassert
+    # opinionated method ordering; helper-near-caller is also readable
+    - funcorder
+    # intentional package-level CLI globals (gh client, formatter map)
+    - gochecknoglobals
+    # no requirement for comments to end with a period
+    - godot
+    # returning interfaces from factory functions is idiomatic Go
+    - ireturn
+    # no line length limit
+    - lll
+    # acceptable nesting depth in version parsing
+    - nestif
+    # intentional nil-not-found pattern, documented in function comments
+    - nilnil
+    # no blank-line-before-return requirement
+    - nlreturn
+    # not required
     - paralleltest
+    # no struct tag naming convention required
+    - tagliatelle
+    # not required
     - testpackage
+    # short variable names are idiomatic Go
+    - varnamelen
+    # deprecated; replaced by wsl_v5
+    - wsl
+    # opinionated whitespace cuddling rules
+    - wsl_v5

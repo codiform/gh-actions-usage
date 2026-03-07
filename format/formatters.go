@@ -1,7 +1,7 @@
+// Package format provides formatters for the output of gh-actions-usage.
 package format
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/geoffreywiseman/gh-actions-usage/client"
@@ -22,7 +22,7 @@ type UnknownFormatterError string
 
 // Error returns a formatted error message for UnknownFormatterError
 func (e UnknownFormatterError) Error() string {
-	return fmt.Sprintf("Unknown formatter: %s", string(e))
+	return "Unknown formatter: " + string(e)
 }
 
 // GetFormatter returns a formatter by name, or an error if the name is unknown
