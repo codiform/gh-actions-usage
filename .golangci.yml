@@ -1,10 +1,5 @@
+version: "2"
 linters:
-  presets:
-    - bugs
-    - error
-    - unused
-    - import
-    - test
   disable:
     - depguard
     - exhaustruct
