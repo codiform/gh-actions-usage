@@ -24,7 +24,10 @@ func TestHumanFormatter(t *testing.T) {
 	formatter.PrintUsage(ru)
 
 	// Then
-	assert.Equal(t, "codiform/gh-actions-usage (1 workflows; 50ms):\n- CI (.github/workflows/ci.yml, active, 50ms)\n\n", output.String())
+	assert.Equal(t, `codiform/gh-actions-usage (1 workflows; 50ms):
+- CI (.github/workflows/ci.yml, active, 50ms)
+
+`, output.String())
 }
 
 func TestHumanFormatter_Empty(t *testing.T) {
@@ -40,5 +43,33 @@ func TestHumanFormatter_Empty(t *testing.T) {
 	formatter.PrintUsage(ru)
 
 	// Then
-	assert.Equal(t, "geoffreywiseman/Moo (0 workflows; 0ms)\n\n", output.String())
+	assert.Equal(t, `geoffreywiseman/Moo (0 workflows; 0ms)
+
+`, output.String())
+}
+
+func TestHumanFormatter_Totals(t *testing.T) {
+	// Given
+	var output bytes.Buffer
+	formatter := humanFormatter{&output}
+	ru := sampleMultipleRepositoriesUsage()
+
+	// When
+	formatter.PrintUsage(ru)
+
+	// Then
+	assert.Equal(t, `codiform/gh-actions-usage (2 workflows; 2s 0ms):
+- CI (.github/workflows/ci.yml, active, 500ms)
+- Release (.github/workflows/release.yml, active, 1s 500ms)
+
+codiform/terraform-tools (1 workflows; 1s 0ms):
+- CI (.github/workflows/ci.yml, active, 1s 0ms)
+
+geoffreywiseman/gh-actuse (0 workflows; 0ms)
+
+Totals:
+- codiform (2 repositories; 3 workflows; 3s 0ms)
+- geoffreywiseman (1 repositories; 0 workflows; 0ms)
+- all repositories (3 repositories; 3 workflows; 3s 0ms)
+`, output.String())
 }

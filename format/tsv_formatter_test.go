@@ -24,7 +24,9 @@ func TestTsvFormatter(t *testing.T) {
 	formatter.PrintUsage(ru)
 
 	// Then
-	assert.Equal(t, "Repo\tWorkflow\tMilliseconds\ncodiform/gh-actions-usage\t.github/workflows/DevSecOps.yaml\t2500\n", output.String())
+	assert.Equal(t, `Repo	Workflow	Milliseconds
+codiform/gh-actions-usage	.github/workflows/DevSecOps.yaml	2500
+`, output.String())
 }
 
 func TestTsvFormatter_Empty(t *testing.T) {
@@ -41,5 +43,25 @@ func TestTsvFormatter_Empty(t *testing.T) {
 	formatter.PrintUsage(ru)
 
 	// Then
-	assert.Equal(t, "Repo\tWorkflow\tMilliseconds\nkim0/salt-states\tn/a\t0\n", output.String())
+	assert.Equal(t, `Repo	Workflow	Milliseconds
+kim0/salt-states	n/a	0
+`, output.String())
+}
+
+func TestTsvFormatter_MultipleRepositories(t *testing.T) {
+	// Given
+	var output bytes.Buffer
+	formatter := tsvFormatter{&output}
+	ru := sampleMultipleRepositoriesUsage()
+
+	// When
+	formatter.PrintUsage(ru)
+
+	// Then
+	assert.Equal(t, `Repo	Workflow	Milliseconds
+codiform/gh-actions-usage	.github/workflows/ci.yml	500
+codiform/gh-actions-usage	.github/workflows/release.yml	1500
+codiform/terraform-tools	.github/workflows/ci.yml	1000
+geoffreywiseman/gh-actuse	n/a	0
+`, output.String())
 }

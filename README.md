@@ -39,17 +39,22 @@ codiform/gh-actions-usage (2 workflows; 1h 1s):
 - release (.github/workflows/release.yml, active, 39s 980ms)
 ```
 
-Display the usage for multiple specified repositories:
+Display the usage for multiple specified repositories. When more than one repository is shown, the output also includes totals by owner and for all targets:
 ```
 gh-actions-usage on  main [!+] via 🐹 v1.19.4
 ❯ gh actions-usage geoffreywiseman/gh-actuse codiform/gh-actions-usage
 GitHub Actions Usage
 
-geoffreywiseman/gh-actuse (0 workflows)
-
 codiform/gh-actions-usage (2 workflows; 0ms):
 - CI (.github/workflows/ci.yml, active, 0ms)
 - release (.github/workflows/release.yml, active, 0ms)
+
+geoffreywiseman/gh-actuse (0 workflows)
+
+Totals:
+- codiform (1 repositories; 2 workflows; 0ms)
+- geoffreywiseman (1 repositories; 0 workflows; 0ms)
+- all repositories (2 repositories; 2 workflows; 0ms)
 ```
 
 Display the usage for all repos of an organization:
@@ -71,6 +76,10 @@ GitHub Actions Usage
 kkruszewska/data_polishers_titanic (0 workflows)
 
 kkruszewska/hello-world (0 workflows)
+
+Totals:
+- kkruszewska (2 repositories; 0 workflows; 0ms)
+- all repositories (2 repositories; 0 workflows; 0ms)
 ```
 
 Display the usage for a mix of repos, organizations and users:
@@ -85,6 +94,12 @@ codiform/gh-actions-usage (2 workflows; 0ms):
 geoffreywiseman/gh-actuse (0 workflows)
 
 misaha/curly-octo-tribble (0 workflows)
+
+Totals:
+- codiform (1 repositories; 2 workflows; 0ms)
+- geoffreywiseman (1 repositories; 0 workflows; 0ms)
+- misaha (1 repositories; 0 workflows; 0ms)
+- all repositories (3 repositories; 2 workflows; 0ms)
 ```
 
 Display the usage for a mix of repos using a tab-separated value format (TSV):
