@@ -34,29 +34,20 @@ type usageSummary struct {
 	Total         uint
 }
 
+// summarizeUsage builds owner and total rollups for human-readable output.
+// Collection intentionally stays as raw RepoUsage so each formatter can choose
+// how much reorganization it needs without coupling API collection to
+// presentation-specific summary rules.
 func summarizeUsage(usage client.RepoUsage) usageSummary {
 	repos := make([]repoSummary, 0, len(usage))
 	owners := make(map[string]*ownerSummary)
 
 	for repo, flowUsage := range usage {
-		workflows := make([]workflowSummary, 0, len(flowUsage))
+		workflows := sortedWorkflowUsage(flowUsage)
 		var repoTotal uint
-		for workflow, workflowUsage := range flowUsage {
-			repoTotal += workflowUsage
-			workflows = append(workflows, workflowSummary{
-				Workflow: workflow,
-				Usage:    workflowUsage,
-			})
+		for _, workflow := range workflows {
+			repoTotal += workflow.Usage
 		}
-		sort.Slice(workflows, func(i, j int) bool {
-			if workflows[i].Workflow.Path != workflows[j].Workflow.Path {
-				return workflows[i].Workflow.Path < workflows[j].Workflow.Path
-			}
-			if workflows[i].Workflow.Name != workflows[j].Workflow.Name {
-				return workflows[i].Workflow.Name < workflows[j].Workflow.Name
-			}
-			return workflows[i].Workflow.ID < workflows[j].Workflow.ID
-		})
 
 		owner := ownerName(repo)
 		repos = append(repos, repoSummary{
@@ -99,6 +90,26 @@ func summarizeUsage(usage client.RepoUsage) usageSummary {
 		WorkflowCount: workflowCount,
 		Total:         total,
 	}
+}
+
+func sortedWorkflowUsage(flowUsage client.WorkflowUsage) []workflowSummary {
+	workflows := make([]workflowSummary, 0, len(flowUsage))
+	for workflow, workflowUsage := range flowUsage {
+		workflows = append(workflows, workflowSummary{
+			Workflow: workflow,
+			Usage:    workflowUsage,
+		})
+	}
+	sort.Slice(workflows, func(i, j int) bool {
+		if workflows[i].Workflow.Path != workflows[j].Workflow.Path {
+			return workflows[i].Workflow.Path < workflows[j].Workflow.Path
+		}
+		if workflows[i].Workflow.Name != workflows[j].Workflow.Name {
+			return workflows[i].Workflow.Name < workflows[j].Workflow.Name
+		}
+		return workflows[i].Workflow.ID < workflows[j].Workflow.ID
+	})
+	return workflows
 }
 
 func ownerName(repo *client.Repository) string {
