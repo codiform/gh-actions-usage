@@ -29,5 +29,5 @@ func (tf tsvFormatter) PrintUsage(usage client.RepoUsage) {
 	for _, owner := range summary.Owners {
 		_, _ = fmt.Fprintf(tf.w, "%s\tTOTAL\t%d\n", owner.Owner, owner.Total)
 	}
-	_, _ = fmt.Fprintf(tf.w, "ALL TARGETS\tTOTAL\t%d\n", summary.Total)
+	_, _ = fmt.Fprintf(tf.w, "all repositories\tTOTAL\t%d\n", summary.Total)
 }

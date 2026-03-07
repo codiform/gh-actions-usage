@@ -28,9 +28,9 @@ func (hf humanFormatter) PrintUsage(usage client.RepoUsage) {
 		return
 	}
 
-	_, _ = fmt.Fprintln(hf.w, "Owner totals:")
+	_, _ = fmt.Fprintln(hf.w, "Totals:")
 	for _, owner := range summary.Owners {
 		_, _ = fmt.Fprintf(hf.w, "- %s (%d repositories; %d workflows; %s)\n", owner.Owner, owner.RepoCount, owner.WorkflowCount, Humanize(owner.Total))
 	}
-	_, _ = fmt.Fprintf(hf.w, "\nAll targets total (%d repositories; %d workflows; %s)\n", summary.RepoCount, summary.WorkflowCount, Humanize(summary.Total))
+	_, _ = fmt.Fprintf(hf.w, "- all repositories (%d repositories; %d workflows; %s)\n", summary.RepoCount, summary.WorkflowCount, Humanize(summary.Total))
 }

@@ -51,11 +51,11 @@ codiform/gh-actions-usage (2 workflows; 0ms):
 
 geoffreywiseman/gh-actuse (0 workflows)
 
-Owner totals:
+Totals:
 - codiform (1 repositories; 2 workflows; 0ms)
 - geoffreywiseman (1 repositories; 0 workflows; 0ms)
 
-All targets total (2 repositories; 2 workflows; 0ms)
+- all repositories (2 repositories; 2 workflows; 0ms)
 ```
 
 Display the usage for all repos of an organization:
@@ -78,10 +78,10 @@ kkruszewska/data_polishers_titanic (0 workflows)
 
 kkruszewska/hello-world (0 workflows)
 
-Owner totals:
+Totals:
 - kkruszewska (2 repositories; 0 workflows; 0ms)
 
-All targets total (2 repositories; 0 workflows; 0ms)
+- all repositories (2 repositories; 0 workflows; 0ms)
 ```
 
 Display the usage for a mix of repos, organizations and users:
@@ -97,12 +97,12 @@ geoffreywiseman/gh-actuse (0 workflows)
 
 misaha/curly-octo-tribble (0 workflows)
 
-Owner totals:
+Totals:
 - codiform (1 repositories; 2 workflows; 0ms)
 - geoffreywiseman (1 repositories; 0 workflows; 0ms)
 - misaha (1 repositories; 0 workflows; 0ms)
 
-All targets total (3 repositories; 2 workflows; 0ms)
+- all repositories (3 repositories; 2 workflows; 0ms)
 ```
 
 Display the usage for a mix of repos using a tab-separated value format (TSV):
@@ -129,7 +129,7 @@ kim0/haven-offshore	.github/workflows/main.yml	75035
 kim0/terraform-switcher	.github/workflows/release.yml	1239
 codiform	TOTAL	352500
 kim0	TOTAL	76274
-ALL TARGETS	TOTAL	428774
+all repositories	TOTAL	428774
 ```
 
 # References

@@ -24,7 +24,9 @@ func TestTsvFormatter(t *testing.T) {
 	formatter.PrintUsage(ru)
 
 	// Then
-	assert.Equal(t, "Repo\tWorkflow\tMilliseconds\ncodiform/gh-actions-usage\t.github/workflows/DevSecOps.yaml\t2500\n", output.String())
+	assert.Equal(t, `Repo	Workflow	Milliseconds
+codiform/gh-actions-usage	.github/workflows/DevSecOps.yaml	2500
+`, output.String())
 }
 
 func TestTsvFormatter_Empty(t *testing.T) {
@@ -41,7 +43,9 @@ func TestTsvFormatter_Empty(t *testing.T) {
 	formatter.PrintUsage(ru)
 
 	// Then
-	assert.Equal(t, "Repo\tWorkflow\tMilliseconds\nkim0/salt-states\tn/a\t0\n", output.String())
+	assert.Equal(t, `Repo	Workflow	Milliseconds
+kim0/salt-states	n/a	0
+`, output.String())
 }
 
 func TestTsvFormatter_Totals(t *testing.T) {
@@ -74,5 +78,13 @@ func TestTsvFormatter_Totals(t *testing.T) {
 	formatter.PrintUsage(ru)
 
 	// Then
-	assert.Equal(t, "Repo\tWorkflow\tMilliseconds\ncodiform/gh-actions-usage\t.github/workflows/ci.yml\t500\ncodiform/gh-actions-usage\t.github/workflows/release.yml\t1500\ncodiform/terraform-tools\t.github/workflows/ci.yml\t1000\ngeoffreywiseman/gh-actuse\tn/a\t0\ncodiform\tTOTAL\t3000\ngeoffreywiseman\tTOTAL\t0\nALL TARGETS\tTOTAL\t3000\n", output.String())
+	assert.Equal(t, `Repo	Workflow	Milliseconds
+codiform/gh-actions-usage	.github/workflows/ci.yml	500
+codiform/gh-actions-usage	.github/workflows/release.yml	1500
+codiform/terraform-tools	.github/workflows/ci.yml	1000
+geoffreywiseman/gh-actuse	n/a	0
+codiform	TOTAL	3000
+geoffreywiseman	TOTAL	0
+all repositories	TOTAL	3000
+`, output.String())
 }
