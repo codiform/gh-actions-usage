@@ -48,7 +48,7 @@ kim0/salt-states	n/a	0
 `, output.String())
 }
 
-func TestTsvFormatter_Totals(t *testing.T) {
+func TestTsvFormatter_MultipleRepositories(t *testing.T) {
 	// Given
 	var output bytes.Buffer
 	formatter := tsvFormatter{&output}
@@ -83,8 +83,5 @@ codiform/gh-actions-usage	.github/workflows/ci.yml	500
 codiform/gh-actions-usage	.github/workflows/release.yml	1500
 codiform/terraform-tools	.github/workflows/ci.yml	1000
 geoffreywiseman/gh-actuse	n/a	0
-codiform	TOTAL	3000
-geoffreywiseman	TOTAL	0
-all repositories	TOTAL	3000
 `, output.String())
 }

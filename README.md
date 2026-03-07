@@ -54,7 +54,6 @@ geoffreywiseman/gh-actuse (0 workflows)
 Totals:
 - codiform (1 repositories; 2 workflows; 0ms)
 - geoffreywiseman (1 repositories; 0 workflows; 0ms)
-
 - all repositories (2 repositories; 2 workflows; 0ms)
 ```
 
@@ -80,7 +79,6 @@ kkruszewska/hello-world (0 workflows)
 
 Totals:
 - kkruszewska (2 repositories; 0 workflows; 0ms)
-
 - all repositories (2 repositories; 0 workflows; 0ms)
 ```
 
@@ -101,7 +99,6 @@ Totals:
 - codiform (1 repositories; 2 workflows; 0ms)
 - geoffreywiseman (1 repositories; 0 workflows; 0ms)
 - misaha (1 repositories; 0 workflows; 0ms)
-
 - all repositories (3 repositories; 2 workflows; 0ms)
 ```
 
@@ -127,9 +124,6 @@ kim0/haven-main	.github/workflows/windows.yml	0
 kim0/haven-main	.github/workflows/docker-build-push.yml	0
 kim0/haven-offshore	.github/workflows/main.yml	75035
 kim0/terraform-switcher	.github/workflows/release.yml	1239
-codiform	TOTAL	352500
-kim0	TOTAL	76274
-all repositories	TOTAL	428774
 ```
 
 # References
