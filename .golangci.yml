@@ -1,5 +1,47 @@
 version: "2"
 linters:
+  default: standard
+  enable:
+    # bugs preset
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - contextcheck
+    - durationcheck
+    - errchkjson
+    - errorlint
+    - exhaustive
+    - gocheckcompilerdirectives
+    - gochecksumtype
+    - gosec
+    - gosmopolitan
+    - loggercheck
+    - makezero
+    - musttag
+    - nilerr
+    - nilnesserr
+    - noctx
+    - protogetter
+    - reassign
+    - recvcheck
+    - rowserrcheck
+    - spancheck
+    - sqlclosecheck
+    - testifylint
+    - zerologlint
+    # error preset
+    - err113
+    - wrapcheck
+    # unused preset
+    - unparam
+    # import preset (gci/goimports removed in v2; gomodguard remains)
+    - gomodguard
+    # test preset (tenv replaced by usetesting)
+    - testableexamples
+    - thelper
+    - tparallel
+    - usetesting
   disable:
     - depguard
     - exhaustruct
