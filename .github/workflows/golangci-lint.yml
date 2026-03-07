@@ -18,3 +18,13 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.11.1
+          args: --output.text.path=lint-output.txt
+      - name: Add lint results to summary
+        if: always()
+        run: |
+          if [ -s lint-output.txt ]; then
+            echo "## Lint Failures" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat lint-output.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
