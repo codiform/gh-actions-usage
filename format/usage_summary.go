@@ -15,6 +15,7 @@ type workflowSummary struct {
 type repoSummary struct {
 	Repo      *client.Repository
 	Owner     string
+	Private   bool
 	Workflows []workflowSummary
 	Total     uint
 }
@@ -53,6 +54,7 @@ func summarizeUsage(usage client.RepoUsage) usageSummary {
 		repos = append(repos, repoSummary{
 			Repo:      repo,
 			Owner:     owner,
+			Private:   repo.Private,
 			Workflows: workflows,
 			Total:     repoTotal,
 		})

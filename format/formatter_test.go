@@ -9,8 +9,8 @@ func sampleMultipleRepositoriesUsage() client.RepoUsage {
 	ci := client.Workflow{Name: "CI", Path: ".github/workflows/ci.yml", State: "active"}
 	release := client.Workflow{Name: "Release", Path: ".github/workflows/release.yml", State: "active"}
 
-	firstRepo := &client.Repository{Owner: codiform, FullName: "codiform/gh-actions-usage"}
-	secondRepo := &client.Repository{Owner: codiform, FullName: "codiform/terraform-tools"}
+	firstRepo := &client.Repository{Owner: codiform, FullName: "codiform/gh-actions-usage", Private: true}
+	secondRepo := &client.Repository{Owner: codiform, FullName: "codiform/terraform-tools", Private: true}
 	thirdRepo := &client.Repository{Owner: geoffreywiseman, FullName: "geoffreywiseman/gh-actuse"}
 
 	return client.RepoUsage{

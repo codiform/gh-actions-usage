@@ -116,9 +116,9 @@ func TestClient_GetWorkflowUsage(t *testing.T) {
 		Run(func(args mock.Arguments) {
 			u := args.Get(1).(*Usage)
 			u.Billable = map[string]*UsageDetails{
-				"WINDOWS": &UsageDetails{TotalMs: 4},
-				"UBUNTU":  &UsageDetails{TotalMs: 180},
-				"MACOS":   &UsageDetails{TotalMs: 16},
+				"WINDOWS": {TotalMs: 4},
+				"UBUNTU":  {TotalMs: 180},
+				"MACOS":   {TotalMs: 16},
 			}
 		})
 

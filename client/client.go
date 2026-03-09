@@ -91,7 +91,7 @@ func (c *Client) getWorkflowPage(repository Repository, page uint8) ([]Workflow,
 
 // Usage represents the usage of a workflow within the billing period
 type Usage struct {
-	Billable map[string]*UsageDetails
+	Billable map[string]*UsageDetails `json:"billable"`
 }
 
 // UsageDetails is a sub-item of Usage which is basically just a container for the total milliseconds of usage
@@ -127,6 +127,7 @@ type Repository struct {
 	FullName string `json:"full_name"`
 	Name     string
 	ID       uint
+	Private  bool `json:"private"`
 }
 
 // User represents a GitHub User that can act as the Owner of a GitHub Repository, which might be an Organization
