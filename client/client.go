@@ -91,11 +91,7 @@ func (c *Client) getWorkflowPage(repository Repository, page uint8) ([]Workflow,
 
 // Usage represents the usage of a workflow within the billing period
 type Usage struct {
-	Billable struct {
-		Ubuntu  *UsageDetails
-		Macos   *UsageDetails
-		Windows *UsageDetails
-	}
+	Billable map[string]*UsageDetails
 }
 
 // UsageDetails is a sub-item of Usage which is basically just a container for the total milliseconds of usage
@@ -114,17 +110,13 @@ func (c *Client) GetWorkflowUsage(repository Repository, workflow Workflow) (*Us
 	return &response, nil
 }
 
-// TotalMs sums the milliseconds of each UsageDetails instance
+// TotalMs sums the milliseconds across all runner environments
 func (u *Usage) TotalMs() uint {
 	var total uint
-	if u.Billable.Windows != nil {
-		total += u.Billable.Windows.TotalMs
-	}
-	if u.Billable.Macos != nil {
-		total += u.Billable.Macos.TotalMs
-	}
-	if u.Billable.Ubuntu != nil {
-		total += u.Billable.Ubuntu.TotalMs
+	for _, details := range u.Billable {
+		if details != nil {
+			total += details.TotalMs
+		}
 	}
 	return total
 }
