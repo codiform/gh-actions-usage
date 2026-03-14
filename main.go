@@ -14,9 +14,10 @@ import (
 var gh client.Client
 
 type config struct {
-	format format.Formatter
-	output string
-	skip   bool
+	format  format.Formatter
+	output  string
+	skip    bool
+	verbose bool
 }
 
 // UnknownRepoError is an error condition when a repository cannot be found
@@ -42,6 +43,7 @@ func main() {
 
 	cfg := &config{}
 	flag.BoolVar(&cfg.skip, "skip", false, "Skips displaying repositories with no workflows")
+	flag.BoolVar(&cfg.verbose, "verbose", false, "Print verbose output including additional error details")
 	flag.StringVar(&cfg.output, "output", "human", "Output format: human or TSV (machine readable)")
 	flag.Parse()
 
@@ -81,7 +83,11 @@ func getVersion() string {
 func tryDisplayCurrentRepo(cfg config) {
 	repo, err := gh.GetCurrentRepository()
 	if repo == nil {
-		fmt.Printf("No current repository: %s\n\n", err)
+		if cfg.verbose {
+			fmt.Printf("No current repository: %s\n\n", err)
+		} else {
+			fmt.Println("No current repository found.\n")
+		}
 		printHelp()
 		return
 	}
@@ -192,7 +198,7 @@ func getRepoUsage(repo *client.Repository) client.WorkflowUsage {
 }
 
 func printHelp() {
-	fmt.Println("USAGE: gh actions-usage [--output=human|tsv] [--skip] [target]...\n\n" +
+	fmt.Println("USAGE: gh actions-usage [--output=human|tsv] [--skip] [--verbose] [target]...\n\n" +
 		"Gets the usage for all workflows in one or more GitHub repositories.\n\n" +
 		"If target is not specified, actions-usage will attempt to get usage for a git repo in the current working directory.\n" +
 		"Target can be one of:\n" +
