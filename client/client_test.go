@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"net/url"
 	"testing"
 
@@ -114,9 +115,11 @@ func TestClient_GetWorkflowUsage(t *testing.T) {
 		Return(nil).
 		Run(func(args mock.Arguments) {
 			u := args.Get(1).(*Usage)
-			u.Billable.Windows = &UsageDetails{TotalMs: 4}
-			u.Billable.Ubuntu = &UsageDetails{TotalMs: 180}
-			u.Billable.Macos = &UsageDetails{TotalMs: 16}
+			u.Billable = map[string]*UsageDetails{
+				"WINDOWS": {TotalMs: 4},
+				"UBUNTU":  {TotalMs: 180},
+				"MACOS":   {TotalMs: 16},
+			}
 		})
 
 	// When
@@ -125,6 +128,26 @@ func TestClient_GetWorkflowUsage(t *testing.T) {
 	// Then
 	require.NoError(t, err)
 	assert.Equal(t, uint(200), usage.TotalMs())
+}
+
+func TestUsage_TotalMs_ApiFormat(t *testing.T) {
+	// Verify that the Usage struct correctly deserializes the GitHub API response format,
+	// which uses uppercase environment keys like UBUNTU, MACOS, WINDOWS.
+	data := `{"billable":{"UBUNTU":{"total_ms":180000},"MACOS":{"total_ms":240000},"WINDOWS":{"total_ms":300000}}}`
+	var u Usage
+	err := json.Unmarshal([]byte(data), &u)
+	require.NoError(t, err)
+	assert.Equal(t, uint(720000), u.TotalMs())
+}
+
+func TestUsage_TotalMs_AdditionalRunnerTypes(t *testing.T) {
+	// Verify that the Usage struct correctly captures additional runner environment keys
+	// that GitHub may return for larger or ARM64 runners.
+	data := `{"billable":{"UBUNTU":{"total_ms":180000},"UBUNTU_ARM":{"total_ms":60000},"MACOS":{"total_ms":240000}}}`
+	var u Usage
+	err := json.Unmarshal([]byte(data), &u)
+	require.NoError(t, err)
+	assert.Equal(t, uint(480000), u.TotalMs())
 }
 
 // Straightforward Test

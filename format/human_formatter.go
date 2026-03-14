@@ -14,10 +14,14 @@ type humanFormatter struct {
 func (hf humanFormatter) PrintUsage(usage client.RepoUsage) {
 	summary := summarizeUsage(usage)
 	for _, repo := range summary.Repos {
+		visibility := ""
+		if !repo.Private {
+			visibility = "; public"
+		}
 		if len(repo.Workflows) == 0 {
-			_, _ = fmt.Fprintf(hf.w, "%s (0 workflows; 0ms)\n", repo.Repo.FullName)
+			_, _ = fmt.Fprintf(hf.w, "%s (0 workflows; 0ms%s)\n", repo.Repo.FullName, visibility)
 		} else {
-			_, _ = fmt.Fprintf(hf.w, "%s (%d workflows; %s):\n", repo.Repo.FullName, len(repo.Workflows), Humanize(repo.Total))
+			_, _ = fmt.Fprintf(hf.w, "%s (%d workflows; %s%s):\n", repo.Repo.FullName, len(repo.Workflows), Humanize(repo.Total), visibility)
 			for _, workflow := range repo.Workflows {
 				_, _ = fmt.Fprintf(hf.w, "- %s (%s, %s, %s)\n", workflow.Workflow.Name, workflow.Workflow.Path, workflow.Workflow.State, Humanize(workflow.Usage))
 			}
