@@ -2,11 +2,13 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"runtime/debug"
 	"strings"
 
+	gogherrors "github.com/cli/go-gh/pkg/api"
 	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"github.com/geoffreywiseman/gh-actions-usage/format"
 )
@@ -83,10 +85,10 @@ func getVersion() string {
 func tryDisplayCurrentRepo(cfg config) {
 	repo, err := gh.GetCurrentRepository()
 	if repo == nil {
-		if cfg.verbose {
-			fmt.Printf("No current repository: %s\n\n", err)
+		if err != nil {
+			printError(cfg, "No current repository", err)
 		} else {
-			fmt.Println("No current repository found.\n")
+			fmt.Printf("No current repository found.\n\n")
 		}
 		printHelp()
 		return
@@ -100,7 +102,7 @@ func tryDisplayCurrentRepo(cfg config) {
 func tryDisplayAllSpecified(cfg config, targets []string) {
 	repos, err := getRepositories(targets)
 	if err != nil {
-		fmt.Printf("Error getting targets: %s\n\n", err)
+		printError(cfg, "Error getting targets", err)
 		printHelp()
 		return
 	}
@@ -118,6 +120,50 @@ func tryDisplayAllSpecified(cfg config, targets []string) {
 }
 
 type repoMap map[*client.User][]*client.Repository
+
+// printError prints an error message with varying detail based on error type and verbosity.
+// Known typed errors (UnknownRepoError, UnknownUserError, etc.) always print a clean,
+// self-describing message without the prefix, as their messages already include full context.
+// HTTP errors from the GitHub API print the status code and message.
+// Other errors are only shown in full when --verbose is set; otherwise a brief message is shown.
+func printError(cfg config, prefix string, err error) {
+	if cfg.verbose {
+		fmt.Printf("%s: %s\n\n", prefix, err)
+		return
+	}
+	if msg, ok := knownErrorMessage(err); ok {
+		fmt.Printf("%s\n\n", msg)
+		return
+	}
+	var httpErr gogherrors.HTTPError
+	if errors.As(err, &httpErr) {
+		fmt.Printf("%s: HTTP %d: %s\n\n", prefix, httpErr.StatusCode, httpErr.Message)
+		return
+	}
+	fmt.Printf("%s (use --verbose for details)\n\n", prefix)
+}
+
+// knownErrorMessage checks if err contains a well-typed, self-describing error and returns
+// its clean message. These errors do not require --verbose to produce a useful message.
+func knownErrorMessage(err error) (string, bool) {
+	var unknownRepo UnknownRepoError
+	if errors.As(err, &unknownRepo) {
+		return unknownRepo.Error(), true
+	}
+	var unknownUser UnknownUserError
+	if errors.As(err, &unknownUser) {
+		return unknownUser.Error(), true
+	}
+	var unexpectedHost client.UnexpectedHostError
+	if errors.As(err, &unexpectedHost) {
+		return unexpectedHost.Error(), true
+	}
+	var unexpectedUserType client.UnexpectedUserTypeError
+	if errors.As(err, &unexpectedUserType) {
+		return unexpectedUserType.Error(), true
+	}
+	return "", false
+}
 
 func getRepositories(targets []string) (repoMap, error) {
 	repos := make(repoMap)
