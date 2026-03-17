@@ -22,6 +22,7 @@ type config struct {
 	output  string
 	skip    bool
 	verbose bool
+	w       io.Writer
 }
 
 // UnknownRepoError is an error condition when a repository cannot be found
@@ -45,7 +46,7 @@ func main() {
 
 	gh = client.New()
 
-	cfg := &config{}
+	cfg := &config{w: os.Stdout}
 	flag.BoolVar(&cfg.skip, "skip", false, "Skips displaying repositories with no workflows")
 	flag.BoolVar(&cfg.verbose, "verbose", false, "Print verbose output including additional error details")
 	flag.StringVar(&cfg.output, "output", "human", "Output format: human or TSV (machine readable)")
@@ -88,7 +89,7 @@ func tryDisplayCurrentRepo(cfg config) {
 	repo, err := gh.GetCurrentRepository()
 	if repo == nil {
 		if err != nil {
-			printError(cfg, "No current repository", err, os.Stdout)
+			printError(cfg, "No current repository", err)
 		} else {
 			fmt.Printf("No current repository found.\n\n")
 		}
@@ -104,7 +105,7 @@ func tryDisplayCurrentRepo(cfg config) {
 func tryDisplayAllSpecified(cfg config, targets []string) {
 	repos, err := getRepositories(targets)
 	if err != nil {
-		printError(cfg, "Error getting targets", err, os.Stdout)
+		printError(cfg, "Error getting targets", err)
 		printHelp()
 		return
 	}
@@ -128,21 +129,21 @@ type repoMap map[*client.User][]*client.Repository
 // self-describing message without the prefix, as their messages already include full context.
 // HTTP errors from the GitHub API print the status code and message.
 // Other errors are only shown in full when --verbose is set; otherwise a brief message is shown.
-func printError(cfg config, prefix string, err error, w io.Writer) {
+func printError(cfg config, prefix string, err error) {
 	if cfg.verbose {
-		_, _ = fmt.Fprintf(w, "%s: %s\n\n", prefix, err)
+		_, _ = fmt.Fprintf(cfg.w, "%s: %s\n\n", prefix, err)
 		return
 	}
 	if msg, ok := knownErrorMessage(err); ok {
-		_, _ = fmt.Fprintf(w, "%s\n\n", msg)
+		_, _ = fmt.Fprintf(cfg.w, "%s\n\n", msg)
 		return
 	}
 	var httpErr gogherrors.HTTPError
 	if errors.As(err, &httpErr) {
-		_, _ = fmt.Fprintf(w, "%s: HTTP %d: %s\n\n", prefix, httpErr.StatusCode, httpErr.Message)
+		_, _ = fmt.Fprintf(cfg.w, "%s: HTTP %d: %s\n\n", prefix, httpErr.StatusCode, httpErr.Message)
 		return
 	}
-	_, _ = fmt.Fprintf(w, "%s (use --verbose for details)\n\n", prefix)
+	_, _ = fmt.Fprintf(cfg.w, "%s (use --verbose for details)\n\n", prefix)
 }
 
 // knownErrorMessage checks if err contains a well-typed, self-describing error and returns

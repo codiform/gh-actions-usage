@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"testing"
 
 	"github.com/cli/go-gh/pkg/api"
@@ -13,14 +14,14 @@ import (
 
 var errGeneric = errors.New("something went wrong")
 
-// cfgVerbose returns a config with verbose enabled.
-func cfgVerbose() config {
-	return config{verbose: true}
+// cfgVerbose returns a config with verbose enabled, writing to w.
+func cfgVerbose(w io.Writer) config {
+	return config{verbose: true, w: w}
 }
 
-// cfgQuiet returns a config with verbose disabled.
-func cfgQuiet() config {
-	return config{verbose: false}
+// cfgQuiet returns a config with verbose disabled, writing to w.
+func cfgQuiet(w io.Writer) config {
+	return config{verbose: false, w: w}
 }
 
 func TestPrintError_Verbose_GenericError(t *testing.T) {
@@ -29,7 +30,7 @@ func TestPrintError_Verbose_GenericError(t *testing.T) {
 	err := errGeneric
 
 	// When
-	printError(cfgVerbose(), "No current repository", err, &out)
+	printError(cfgVerbose(&out), "No current repository", err)
 
 	// Then
 	assert.Equal(t, "No current repository: something went wrong\n\n", out.String())
@@ -41,7 +42,7 @@ func TestPrintError_Verbose_HTTPError(t *testing.T) {
 	err := fmt.Errorf("could not get repository: %w", api.HTTPError{StatusCode: 403, Message: "Forbidden"})
 
 	// When
-	printError(cfgVerbose(), "No current repository", err, &out)
+	printError(cfgVerbose(&out), "No current repository", err)
 
 	// Then
 	// Verbose always prints the full error chain, including the URL placeholder.
@@ -55,7 +56,7 @@ func TestPrintError_UnknownRepo(t *testing.T) {
 	err := UnknownRepoError("codiform/missing")
 
 	// When
-	printError(cfgQuiet(), "Error getting targets", err, &out)
+	printError(cfgQuiet(&out), "Error getting targets", err)
 
 	// Then
 	assert.Equal(t, "Unknown repository: codiform/missing\n\n", out.String())
@@ -67,7 +68,7 @@ func TestPrintError_UnknownRepo_Wrapped(t *testing.T) {
 	err := fmt.Errorf("outer: %w", UnknownRepoError("codiform/missing"))
 
 	// When
-	printError(cfgQuiet(), "Error getting targets", err, &out)
+	printError(cfgQuiet(&out), "Error getting targets", err)
 
 	// Then
 	assert.Equal(t, "Unknown repository: codiform/missing\n\n", out.String())
@@ -79,7 +80,7 @@ func TestPrintError_UnknownUser(t *testing.T) {
 	err := UnknownUserError("johndoe")
 
 	// When
-	printError(cfgQuiet(), "Error getting targets", err, &out)
+	printError(cfgQuiet(&out), "Error getting targets", err)
 
 	// Then
 	assert.Equal(t, "Unknown user: johndoe\n\n", out.String())
@@ -91,7 +92,7 @@ func TestPrintError_UnexpectedHost(t *testing.T) {
 	err := client.UnexpectedHostError("gitlab.com")
 
 	// When
-	printError(cfgQuiet(), "No current repository", err, &out)
+	printError(cfgQuiet(&out), "No current repository", err)
 
 	// Then
 	assert.Equal(t, "Unexpected host: gitlab.com\n\n", out.String())
@@ -103,7 +104,7 @@ func TestPrintError_UnexpectedUserType(t *testing.T) {
 	err := client.UnexpectedUserTypeError("Bot")
 
 	// When
-	printError(cfgQuiet(), "Error getting targets", err, &out)
+	printError(cfgQuiet(&out), "Error getting targets", err)
 
 	// Then
 	assert.Equal(t, "Unexpected user type: Bot\n\n", out.String())
@@ -115,7 +116,7 @@ func TestPrintError_HTTPError(t *testing.T) {
 	err := api.HTTPError{StatusCode: 403, Message: "Resource not accessible by integration"}
 
 	// When
-	printError(cfgQuiet(), "No current repository", err, &out)
+	printError(cfgQuiet(&out), "No current repository", err)
 
 	// Then
 	assert.Equal(t, "No current repository: HTTP 403: Resource not accessible by integration\n\n", out.String())
@@ -127,7 +128,7 @@ func TestPrintError_HTTPError_Wrapped(t *testing.T) {
 	err := fmt.Errorf("could not get current repository: %w", api.HTTPError{StatusCode: 401, Message: "Unauthorized"})
 
 	// When
-	printError(cfgQuiet(), "No current repository", err, &out)
+	printError(cfgQuiet(&out), "No current repository", err)
 
 	// Then
 	assert.Equal(t, "No current repository: HTTP 401: Unauthorized\n\n", out.String())
@@ -139,7 +140,7 @@ func TestPrintError_GenericError(t *testing.T) {
 	err := errGeneric
 
 	// When
-	printError(cfgQuiet(), "No current repository", err, &out)
+	printError(cfgQuiet(&out), "No current repository", err)
 
 	// Then
 	assert.Equal(t, "No current repository (use --verbose for details)\n\n", out.String())
