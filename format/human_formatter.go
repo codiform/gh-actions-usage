@@ -23,7 +23,11 @@ func (hf humanFormatter) PrintUsage(usage client.RepoUsage) {
 		} else {
 			_, _ = fmt.Fprintf(hf.w, "%s (%d workflows; %s%s):\n", repo.Repo.FullName, len(repo.Workflows), Humanize(repo.Total), visibility)
 			for _, workflow := range repo.Workflows {
-				_, _ = fmt.Fprintf(hf.w, "- %s (%s, %s, %s)\n", workflow.Workflow.Name, workflow.Workflow.Path, workflow.Workflow.State, Humanize(workflow.Usage))
+				if workflow.Workflow.Path == "" {
+					_, _ = fmt.Fprintf(hf.w, "- %s (%s)\n", workflow.Workflow.Name, Humanize(workflow.Usage))
+				} else {
+					_, _ = fmt.Fprintf(hf.w, "- %s (%s, %s, %s)\n", workflow.Workflow.Name, workflow.Workflow.Path, workflow.Workflow.State, Humanize(workflow.Usage))
+				}
 			}
 		}
 		_, _ = fmt.Fprintln(hf.w)

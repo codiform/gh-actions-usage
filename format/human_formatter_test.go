@@ -98,18 +98,44 @@ func TestHumanFormatter_Totals(t *testing.T) {
 	formatter.PrintUsage(ru)
 
 	// Then
-	assert.Equal(t, `codiform/gh-actions-usage (2 workflows; 2s 0ms):
+	assert.Equal(t, `codiform/gh-actions-usage (2 workflows; 2s):
 - CI (.github/workflows/ci.yml, active, 500ms)
 - Release (.github/workflows/release.yml, active, 1s 500ms)
 
-codiform/terraform-tools (1 workflows; 1s 0ms):
-- CI (.github/workflows/ci.yml, active, 1s 0ms)
+codiform/terraform-tools (1 workflows; 1s):
+- CI (.github/workflows/ci.yml, active, 1s)
 
 geoffreywiseman/gh-actuse (0 workflows; 0ms; public)
 
 Totals:
-- codiform (2 repositories; 3 workflows; 3s 0ms)
+- codiform (2 repositories; 3 workflows; 3s)
 - geoffreywiseman (1 repositories; 0 workflows; 0ms)
-- all repositories (3 repositories; 3 workflows; 3s 0ms)
+- all repositories (3 repositories; 3 workflows; 3s)
+`, output.String())
+}
+
+func TestHumanFormatter_BillingSkus(t *testing.T) {
+	// Given
+	var output bytes.Buffer
+	formatter := humanFormatter{&output}
+
+	// SKU-based workflows have no Path or State (billing API data)
+	linux := client.Workflow{Name: "Actions Linux"}
+	macos := client.Workflow{Name: "Actions macOS"}
+	wfu := client.WorkflowUsage{
+		linux: 100 * 60000, // 100 minutes in ms
+		macos: 30 * 60000,  // 30 minutes in ms
+	}
+	r := client.Repository{FullName: "codiform/gh-actions-usage", Private: true}
+	ru := client.RepoUsage{&r: wfu}
+
+	// When
+	formatter.PrintUsage(ru)
+
+	// Then
+	assert.Equal(t, `codiform/gh-actions-usage (2 workflows; 2h 10m):
+- Actions Linux (1h 40m)
+- Actions macOS (30m)
+
 `, output.String())
 }

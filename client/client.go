@@ -10,6 +10,9 @@ import (
 	"github.com/cli/go-gh/pkg/api"
 )
 
+const userTypeOrganization = "Organization"
+const userTypeUser = "User"
+
 // New creates a new Client instance, initialized with a GH RESTClient
 func New() Client {
 	rest, err := gh.RESTClient(nil)
@@ -121,6 +124,47 @@ func (u *Usage) TotalMs() uint {
 	return total
 }
 
+// BillingUsageItem represents a single line item in a billing usage report.
+// Quantity is in the unit specified by UnitType (minutes for Actions).
+// RepositoryName is in "owner/repo" format.
+type BillingUsageItem struct {
+	Date             string  `json:"date"`
+	Product          string  `json:"product"`
+	SKU              string  `json:"sku"`
+	Quantity         float64 `json:"quantity"`
+	UnitType         string  `json:"unitType"`
+	PricePerUnit     float64 `json:"pricePerUnit"`
+	GrossAmount      float64 `json:"grossAmount"`
+	DiscountAmount   float64 `json:"discountAmount"`
+	NetAmount        float64 `json:"netAmount"`
+	OrganizationName string  `json:"organizationName"`
+	RepositoryName   string  `json:"repositoryName"`
+}
+
+// BillingUsageReport is the response from the billing usage API
+type BillingUsageReport struct {
+	UsageItems []BillingUsageItem `json:"usageItems"`
+}
+
+// GetActionsUsage returns Actions billing usage for a user or organization for the current billing period
+func (c *Client) GetActionsUsage(user *User) (*BillingUsageReport, error) {
+	var path string
+	switch user.Type {
+	case userTypeOrganization:
+		path = fmt.Sprintf("organizations/%s/settings/billing/usage", user.Login)
+	case userTypeUser:
+		path = fmt.Sprintf("users/%s/settings/billing/usage", user.Login)
+	default:
+		return nil, UnexpectedUserTypeError(user.Type)
+	}
+	response := BillingUsageReport{}
+	err := c.Rest.Get(path, &response)
+	if err != nil {
+		return nil, fmt.Errorf("could not get actions usage: %w", err)
+	}
+	return &response, nil
+}
+
 // Repository represents a GitHub Repository
 type Repository struct {
 	Owner    *User
@@ -207,9 +251,9 @@ func (c *Client) GetAllRepositories(user *User) ([]*Repository, error) {
 
 func (c *Client) getAllRepositoriesPath(user *User, page uint8) (string, error) {
 	switch user.Type {
-	case "Organization":
+	case userTypeOrganization:
 		return fmt.Sprintf("orgs/%s/repos?page=%d", user.Login, page), nil
-	case "User":
+	case userTypeUser:
 		return fmt.Sprintf("users/%s/repos?page=%d", user.Login, page), nil
 	default:
 		return "", UnexpectedUserTypeError(user.Type)

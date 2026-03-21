@@ -160,7 +160,7 @@ func TestClient_GetUser(t *testing.T) {
 			u := args.Get(1).(*User)
 			u.ID = 103469606
 			u.Login = "codiform"
-			u.Type = "Organization"
+			u.Type = userTypeOrganization
 		})
 
 	// When
@@ -217,6 +217,70 @@ func TestClient_GetAllRepositories(t *testing.T) {
 	if len(repos) > 0 {
 		assert.Equal(t, "gh-actuse", repos[0].Name)
 	}
+}
+
+func TestClient_GetActionsUsage_User(t *testing.T) {
+	// Given
+	rest, client := getTestClient()
+	owner := &User{ID: 49935, Login: "geoffreywiseman", Type: userTypeUser}
+	rest.On("Get", "users/geoffreywiseman/settings/billing/usage", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			report := args.Get(1).(*BillingUsageReport)
+			report.UsageItems = []BillingUsageItem{
+				{Date: "2024-01-01", Product: "Actions", SKU: "Actions Linux", Quantity: 100, UnitType: "minutes", RepositoryName: "geoffreywiseman/gh-actuse"},
+				{Date: "2024-01-02", Product: "Actions", SKU: "Actions Linux", Quantity: 50, UnitType: "minutes", RepositoryName: "geoffreywiseman/gh-actuse"},
+			}
+		})
+
+	// When
+	report, err := client.GetActionsUsage(owner)
+
+	// Then
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	assert.Len(t, report.UsageItems, 2)
+	assert.Equal(t, "Actions Linux", report.UsageItems[0].SKU)
+	assert.InDelta(t, float64(100), report.UsageItems[0].Quantity, 0.001)
+}
+
+func TestClient_GetActionsUsage_Organization(t *testing.T) {
+	// Given
+	rest, client := getTestClient()
+	owner := &User{ID: 103469606, Login: "codiform", Type: userTypeOrganization}
+	rest.On("Get", "organizations/codiform/settings/billing/usage", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			report := args.Get(1).(*BillingUsageReport)
+			report.UsageItems = []BillingUsageItem{
+				{Date: "2024-01-01", Product: "Actions", SKU: "Actions Linux", Quantity: 200, UnitType: "minutes", RepositoryName: "codiform/gh-actions-usage"},
+				{Date: "2024-01-01", Product: "Actions", SKU: "Actions macOS", Quantity: 30, UnitType: "minutes", RepositoryName: "codiform/gh-actions-usage"},
+			}
+		})
+
+	// When
+	report, err := client.GetActionsUsage(owner)
+
+	// Then
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	assert.Len(t, report.UsageItems, 2)
+	assert.Equal(t, "codiform/gh-actions-usage", report.UsageItems[0].RepositoryName)
+}
+
+func TestClient_GetActionsUsage_UnexpectedType(t *testing.T) {
+	// Given
+	_, client := getTestClient()
+	owner := &User{ID: 1, Login: "bot", Type: "Bot"}
+
+	// When
+	report, err := client.GetActionsUsage(owner)
+
+	// Then
+	assert.Nil(t, report)
+	require.Error(t, err)
+	var unexpectedType UnexpectedUserTypeError
+	assert.ErrorAs(t, err, &unexpectedType)
 }
 
 func getTestClient() (*mocks.RestMock, Client) {
