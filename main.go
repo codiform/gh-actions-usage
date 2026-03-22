@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -15,7 +16,13 @@ import (
 	"github.com/geoffreywiseman/gh-actions-usage/format"
 )
 
+// msPerMinute is the number of milliseconds in one minute
+const msPerMinute = 60000
+
 var gh client.Client
+
+// errUnknownOwner is returned when the repository owner cannot be determined
+var errUnknownOwner = errors.New("repository owner is unknown")
 
 type config struct {
 	format  format.Formatter
@@ -96,10 +103,22 @@ func tryDisplayCurrentRepo(cfg config) {
 		printHelp()
 		return
 	}
-	var repoFlowUsage = make(map[*client.Repository]client.WorkflowUsage)
-	r := getRepoUsage(repo)
-	repoFlowUsage[repo] = r
-	cfg.format.PrintUsage(repoFlowUsage)
+	ownerUsage, err := getOwnerActionsUsage(repo.Owner)
+	if err != nil {
+		if isBillingUnavailable(err) {
+			printWarning(cfg, err)
+		} else {
+			printError(cfg, "Error getting billing usage", err)
+			return
+		}
+	}
+	repoUsage := make(client.RepoUsage)
+	wfUsage := ownerUsage[repo.FullName]
+	if wfUsage == nil {
+		wfUsage = make(client.WorkflowUsage)
+	}
+	repoUsage[repo] = wfUsage
+	cfg.format.PrintUsage(repoUsage)
 }
 
 func tryDisplayAllSpecified(cfg config, targets []string) {
@@ -109,14 +128,27 @@ func tryDisplayAllSpecified(cfg config, targets []string) {
 		printHelp()
 		return
 	}
-	var repoFlowUsage = make(map[*client.Repository]client.WorkflowUsage)
-	for _, list := range repos {
-		for _, item := range list {
-			r := getRepoUsage(item)
-			if len(r) == 0 && cfg.skip {
+	repoFlowUsage := make(client.RepoUsage)
+	for owner, repoList := range repos {
+		ownerUsage, err := getOwnerActionsUsage(owner)
+		if err != nil {
+			if isBillingUnavailable(err) {
+				printWarning(cfg, err)
+				ownerUsage = make(map[string]client.WorkflowUsage)
+			} else {
+				printError(cfg, "Error getting billing usage", err)
+				return
+			}
+		}
+		for _, repo := range repoList {
+			wfUsage := ownerUsage[repo.FullName]
+			if wfUsage == nil {
+				wfUsage = make(client.WorkflowUsage)
+			}
+			if len(wfUsage) == 0 && cfg.skip {
 				continue
 			}
-			repoFlowUsage[item] = r
+			repoFlowUsage[repo] = wfUsage
 		}
 	}
 	cfg.format.PrintUsage(repoFlowUsage)
@@ -144,6 +176,17 @@ func printError(cfg config, prefix string, err error) {
 		return
 	}
 	_, _ = fmt.Fprintf(cfg.w, "%s (use --verbose for details)\n\n", prefix)
+}
+
+// isBillingUnavailable reports whether err is a BillingUnavailableError.
+func isBillingUnavailable(err error) bool {
+	var billingErr client.BillingUnavailableError
+	return errors.As(err, &billingErr)
+}
+
+// printWarning prints a non-fatal warning message. Unlike printError, it does not abort the run.
+func printWarning(cfg config, err error) {
+	_, _ = fmt.Fprintf(cfg.w, "Warning: %s\n\n", err)
 }
 
 // knownErrorMessage checks if err contains a well-typed, self-describing error and returns
@@ -228,22 +271,31 @@ func mapOwner(repos repoMap, userName string) error {
 	return nil
 }
 
-func getRepoUsage(repo *client.Repository) client.WorkflowUsage {
-	workflows, err := gh.GetWorkflows(*repo)
+func getOwnerActionsUsage(owner *client.User) (map[string]client.WorkflowUsage, error) {
+	if owner == nil {
+		return nil, errUnknownOwner
+	}
+	report, err := gh.GetActionsUsage(owner)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	var result = make(client.WorkflowUsage)
-	for _, flow := range workflows {
-		usage, err := gh.GetWorkflowUsage(*repo, flow)
-		if err != nil {
-			panic(err)
+	byRepo := make(map[string]client.WorkflowUsage)
+	if report == nil {
+		return byRepo, nil
+	}
+	for _, item := range report.UsageItems {
+		if !strings.EqualFold(item.Product, "actions") {
+			continue
 		}
-		result[flow] = usage.TotalMs()
+		repoUsage := byRepo[item.RepositoryName]
+		if repoUsage == nil {
+			repoUsage = make(client.WorkflowUsage)
+			byRepo[item.RepositoryName] = repoUsage
+		}
+		wf := client.Workflow{Name: item.SKU}
+		repoUsage[wf] += uint(math.Round(item.Quantity * msPerMinute))
 	}
-
-	return result
+	return byRepo, nil
 }
 
 func printHelp() {
