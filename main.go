@@ -105,8 +105,12 @@ func tryDisplayCurrentRepo(cfg config) {
 	}
 	ownerUsage, err := getOwnerActionsUsage(repo.Owner)
 	if err != nil {
-		printError(cfg, "Error getting billing usage", err)
-		return
+		if isBillingUnavailable(err) {
+			printWarning(cfg, err)
+		} else {
+			printError(cfg, "Error getting billing usage", err)
+			return
+		}
 	}
 	repoUsage := make(client.RepoUsage)
 	wfUsage := ownerUsage[repo.FullName]
@@ -128,8 +132,13 @@ func tryDisplayAllSpecified(cfg config, targets []string) {
 	for owner, repoList := range repos {
 		ownerUsage, err := getOwnerActionsUsage(owner)
 		if err != nil {
-			printError(cfg, "Error getting billing usage", err)
-			return
+			if isBillingUnavailable(err) {
+				printWarning(cfg, err)
+				ownerUsage = make(map[string]client.WorkflowUsage)
+			} else {
+				printError(cfg, "Error getting billing usage", err)
+				return
+			}
 		}
 		for _, repo := range repoList {
 			wfUsage := ownerUsage[repo.FullName]
@@ -257,9 +266,12 @@ func getOwnerActionsUsage(owner *client.User) (map[string]client.WorkflowUsage, 
 	}
 	report, err := gh.GetActionsUsage(owner)
 	if err != nil {
-		return nil, fmt.Errorf("could not get actions usage: %w", err)
+		return nil, err
 	}
 	byRepo := make(map[string]client.WorkflowUsage)
+	if report == nil {
+		return byRepo, nil
+	}
 	for _, item := range report.UsageItems {
 		if !strings.EqualFold(item.Product, "actions") {
 			continue

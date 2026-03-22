@@ -58,6 +58,15 @@ func (e UnexpectedHostError) Error() string {
 	return "Unexpected host: " + string(e)
 }
 
+// BillingUnavailableError is returned when the billing API cannot be accessed due to missing
+// permissions. The value is the HTTP status code returned by the API.
+type BillingUnavailableError int
+
+// Error returns a formatted error message for BillingUnavailableError
+func (e BillingUnavailableError) Error() string {
+	return fmt.Sprintf("Billing API unavailable (HTTP %d): a token with billing permissions is required to retrieve usage data", int(e))
+}
+
 // GetWorkflows returns a slice of Workflow instances, one for each workflow in the repository
 func (c *Client) GetWorkflows(repository Repository) ([]Workflow, error) {
 	var page uint8 = 1
@@ -146,7 +155,8 @@ type BillingUsageReport struct {
 	UsageItems []BillingUsageItem `json:"usageItems"`
 }
 
-// GetActionsUsage returns Actions billing usage for a user or organization for the current billing period
+// GetActionsUsage returns Actions billing usage for a user or organization for the current billing period.
+// Returns nil when the user or organization is not on the enhanced billing platform (404).
 func (c *Client) GetActionsUsage(user *User) (*BillingUsageReport, error) {
 	var path string
 	switch user.Type {
@@ -160,6 +170,15 @@ func (c *Client) GetActionsUsage(user *User) (*BillingUsageReport, error) {
 	response := BillingUsageReport{}
 	err := c.Rest.Get(path, &response)
 	if err != nil {
+		var httpError api.HTTPError
+		if errors.As(err, &httpError) {
+			switch httpError.StatusCode {
+			case http.StatusNotFound:
+				return nil, nil
+			case http.StatusForbidden:
+				return nil, BillingUnavailableError(httpError.StatusCode)
+			}
+		}
 		return nil, fmt.Errorf("could not get actions usage: %w", err)
 	}
 	return &response, nil
