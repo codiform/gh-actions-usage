@@ -178,6 +178,17 @@ func printError(cfg config, prefix string, err error) {
 	_, _ = fmt.Fprintf(cfg.w, "%s (use --verbose for details)\n\n", prefix)
 }
 
+// isBillingUnavailable reports whether err is a BillingUnavailableError.
+func isBillingUnavailable(err error) bool {
+	var billingErr client.BillingUnavailableError
+	return errors.As(err, &billingErr)
+}
+
+// printWarning prints a non-fatal warning message. Unlike printError, it does not abort the run.
+func printWarning(cfg config, err error) {
+	_, _ = fmt.Fprintf(cfg.w, "Warning: %s\n\n", err)
+}
+
 // knownErrorMessage checks if err contains a well-typed, self-describing error and returns
 // its clean message. These errors do not require --verbose to produce a useful message.
 func knownErrorMessage(err error) (string, bool) {
