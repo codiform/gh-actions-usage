@@ -5,6 +5,7 @@ go 1.26.0
 require (
 	github.com/cli/go-gh/v2 v2.16.0
 	github.com/stretchr/testify v1.12.1
+	golang.org/x/time v0.16.0
 )
 
 require (

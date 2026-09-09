@@ -10,9 +10,10 @@ import (
 	"github.com/cli/go-gh/v2/pkg/repository"
 )
 
-// New creates a new Client instance, initialized with a GH RESTClient
+// New creates a new Client instance, initialized with a GH RESTClient that paces requests to stay within
+// GitHub's rate limits and retries requests that are rejected as rate limited.
 func New() Client {
-	rest, err := api.NewRESTClient(api.ClientOptions{})
+	rest, err := api.NewRESTClient(api.ClientOptions{Transport: newThrottle(http.DefaultTransport)})
 	if err != nil {
 		panic(err)
 	}
