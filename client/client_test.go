@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/cli/go-gh/pkg/api"
+	"github.com/cli/go-gh/v2/pkg/api"
 	mocks "github.com/geoffreywiseman/gh-actions-usage/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -41,7 +41,7 @@ func TestClient_GetRepository_NotFound(t *testing.T) {
 	expectedName := testRepoFullName
 	requestURL, _ := url.Parse("https://github.com/" + testRepoFullName)
 	rest.On("Get", "repos/"+testRepoFullName, mock.Anything).
-		Return(api.HTTPError{
+		Return(&api.HTTPError{
 			Errors:     nil,
 			Headers:    nil,
 			Message:    "Couldn't find repo",
@@ -63,7 +63,7 @@ func TestClient_GetRepository_Failure(t *testing.T) {
 	expectedName := testRepoFullName
 	requestURL, _ := url.Parse("https://github.com/" + testRepoFullName)
 	rest.On("Get", "repos/"+testRepoFullName, mock.Anything).
-		Return(api.HTTPError{
+		Return(&api.HTTPError{
 			Errors:     nil,
 			Headers:    nil,
 			Message:    "Server Error",
@@ -178,7 +178,7 @@ func TestClient_GetUser_NotFound(t *testing.T) {
 	expectedName := "codiform2"
 	requestURL, _ := url.Parse("https://github.com/users/codiform2")
 	rest.On("Get", "users/codiform2", mock.Anything).
-		Return(api.HTTPError{
+		Return(&api.HTTPError{
 			Errors:     nil,
 			Headers:    nil,
 			Message:    "Not Found",

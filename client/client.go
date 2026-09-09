@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cli/go-gh"
-	"github.com/cli/go-gh/pkg/api"
+	"github.com/cli/go-gh/v2/pkg/api"
+	"github.com/cli/go-gh/v2/pkg/repository"
 )
 
 // New creates a new Client instance, initialized with a GH RESTClient
 func New() Client {
-	rest, err := gh.RESTClient(nil)
+	rest, err := api.NewRESTClient(api.ClientOptions{})
 	if err != nil {
 		panic(err)
 	}
@@ -20,9 +20,15 @@ func New() Client {
 	return Client{Rest: rest}
 }
 
+// REST is the subset of the go-gh REST client used by Client, expressed as an interface so that it can be mocked.
+type REST interface {
+	// Get issues a GET request to the specified path and decodes the JSON response into response.
+	Get(path string, response any) error
+}
+
 // Client is a GH API client customized for the specifics of `gh-actions-usage`.
 type Client struct {
-	Rest api.RESTClient
+	Rest REST
 }
 
 // Workflow represents a GitHub Actions workflow
@@ -152,20 +158,20 @@ func (c *Client) GetRepository(fullName string) (*Repository, error) {
 
 // GetCurrentRepository gets the Repository that corresponds to the current working directory, or nil if there is none
 func (c *Client) GetCurrentRepository() (*Repository, error) {
-	repo, err := gh.CurrentRepository()
+	repo, err := repository.Current()
 	if err != nil {
 		return nil, fmt.Errorf("could not get current repository: %w", err)
 	}
 
-	if repo.Host() != "github.com" {
-		return nil, UnexpectedHostError(repo.Host())
+	if repo.Host != "github.com" {
+		return nil, UnexpectedHostError(repo.Host)
 	}
 
-	return c.GetRepository(fmt.Sprintf("%s/%s", repo.Owner(), repo.Name()))
+	return c.GetRepository(fmt.Sprintf("%s/%s", repo.Owner, repo.Name))
 }
 
 func is404(err error) bool {
-	var httpError api.HTTPError
+	var httpError *api.HTTPError
 	return errors.As(err, &httpError) && httpError.StatusCode == http.StatusNotFound
 }
 

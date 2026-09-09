@@ -10,7 +10,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	gogherrors "github.com/cli/go-gh/pkg/api"
+	gogherrors "github.com/cli/go-gh/v2/pkg/api"
 	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"github.com/geoffreywiseman/gh-actions-usage/format"
 )
@@ -138,7 +138,7 @@ func printError(cfg config, prefix string, err error) {
 		_, _ = fmt.Fprintf(cfg.w, "%s\n\n", msg)
 		return
 	}
-	var httpErr gogherrors.HTTPError
+	var httpErr *gogherrors.HTTPError
 	if errors.As(err, &httpErr) {
 		_, _ = fmt.Fprintf(cfg.w, "%s: HTTP %d: %s\n\n", prefix, httpErr.StatusCode, httpErr.Message)
 		return
