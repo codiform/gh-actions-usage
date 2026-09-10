@@ -96,38 +96,6 @@ func (c *Client) getWorkflowPage(repository Repository, page uint8) ([]Workflow,
 	return response.Workflows, nil
 }
 
-// Usage represents the usage of a workflow within the billing period
-type Usage struct {
-	Billable map[string]*UsageDetails `json:"billable"`
-}
-
-// UsageDetails is a sub-item of Usage which is basically just a container for the total milliseconds of usage
-type UsageDetails struct {
-	TotalMs uint `json:"total_ms"`
-}
-
-// GetWorkflowUsage returns the Usage for a Workflow in a Repository
-func (c *Client) GetWorkflowUsage(repository Repository, workflow Workflow) (*Usage, error) {
-	response := Usage{}
-	path := fmt.Sprintf("repos/%s/actions/workflows/%d/timing", repository.FullName, workflow.ID)
-	err := c.Rest.Get(path, &response)
-	if err != nil {
-		return nil, fmt.Errorf("could not get workflow usage: %w", err)
-	}
-	return &response, nil
-}
-
-// TotalMs sums the milliseconds across all runner environments
-func (u *Usage) TotalMs() uint {
-	var total uint
-	for _, details := range u.Billable {
-		if details != nil {
-			total += details.TotalMs
-		}
-	}
-	return total
-}
-
 // Repository represents a GitHub Repository
 type Repository struct {
 	Owner    *User
