@@ -1,11 +1,30 @@
 ![Demo](doc/demo.gif)
 
 # GH Actions Usage
-GitHub CLI extension for measuring the *billable usage* of GitHub Actions in the *current billing period*.
+GitHub CLI extension for measuring the usage of GitHub Actions workflows in the *current billing period*, which on
+GitHub's billing platform is the calendar month in UTC.
 
-This is all the information that's available through the API currently:
-- I can't go beyond the current billing period
-- I can't see usage minutes that aren't billable, like self-hosted runners, which don't incur billable time on GitHub Actions
+Usage is computed from the durations of the jobs that ran in the period, so it works for any repository you can
+see, including public repositories and other people's repositories, without any billing permissions. Because it
+counts every job, it also includes time on self-hosted runners.
+
+This is a change made in 2026. Earlier versions read the per-workflow billable minutes from GitHub's Actions billing
+API, which GitHub [closed down](https://github.blog/changelog/2025-02-02-actions-get-workflow-usage-and-get-workflow-run-usage-endpoints-closing-down/)
+along with the move to its new billing platform; that endpoint now always reports zero. The replacement
+[billing usage report](https://docs.github.com/en/rest/billing/enhanced-billing) only breaks usage down by
+repository and runner type, not by workflow, and requires owner or billing-manager access, so this extension
+switched to computing usage from job durations instead.
+
+How it works, and what that means for the numbers:
+- Workflow runs created in the period are listed, and the jobs of each commit they ran on are fetched from the check
+  runs API. Each completed job adds its elapsed time to its workflow; skipped jobs count for nothing.
+- Only the latest attempt of a re-run job is counted, since GitHub replaces a job's check run when it is re-run.
+- Runs of workflows that have since been deleted are still counted, and are listed with the state `deleted`.
+- The result is elapsed job time, not billed minutes: GitHub rounds each job up to the minute and applies runner
+  multipliers when billing, and neither adjustment is applied here.
+- Busy repositories need one API call per commit with runs in the period, plus a few for listing. The extension paces
+  its requests to stay within GitHub's rate limits, waits and retries when GitHub asks it to, and refuses up front if
+  the remaining API budget is too small for the repositories requested.
 
 I wrote a version of this extension before the Golang support was available for `gh`, which is still available [here](https://github.com/geoffreywiseman/gh-actuse).
 
@@ -125,6 +144,12 @@ kim0/haven-main	.github/workflows/docker-build-push.yml	0
 kim0/haven-offshore	.github/workflows/main.yml	75035
 kim0/terraform-switcher	.github/workflows/release.yml	1239
 ```
+
+## Flags
+
+- `--output=human|tsv` selects the output format; `tsv` is machine-readable.
+- `--skip` omits repositories that have no workflows.
+- `--verbose` prints full error details instead of the short message.
 
 # References
 - GitHub [REST OpenAPI](https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.yaml)
