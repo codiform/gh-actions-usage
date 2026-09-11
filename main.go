@@ -163,8 +163,7 @@ func printError(cfg config, prefix string, err error) {
 		_, _ = fmt.Fprintf(cfg.w, "%s\n\n", msg)
 		return
 	}
-	var httpErr *gogherrors.HTTPError
-	if errors.As(err, &httpErr) {
+	if httpErr, ok := errors.AsType[*gogherrors.HTTPError](err); ok {
 		_, _ = fmt.Fprintf(cfg.w, "%s: HTTP %d: %s\n\n", prefix, httpErr.StatusCode, httpErr.Message)
 		return
 	}
@@ -174,24 +173,19 @@ func printError(cfg config, prefix string, err error) {
 // knownErrorMessage checks if err contains a well-typed, self-describing error and returns
 // its clean message. These errors do not require --verbose to produce a useful message.
 func knownErrorMessage(err error) (string, bool) {
-	var unknownRepo UnknownRepoError
-	if errors.As(err, &unknownRepo) {
+	if unknownRepo, ok := errors.AsType[UnknownRepoError](err); ok {
 		return unknownRepo.Error(), true
 	}
-	var unknownUser UnknownUserError
-	if errors.As(err, &unknownUser) {
+	if unknownUser, ok := errors.AsType[UnknownUserError](err); ok {
 		return unknownUser.Error(), true
 	}
-	var unexpectedHost client.UnexpectedHostError
-	if errors.As(err, &unexpectedHost) {
+	if unexpectedHost, ok := errors.AsType[client.UnexpectedHostError](err); ok {
 		return unexpectedHost.Error(), true
 	}
-	var unexpectedUserType client.UnexpectedUserTypeError
-	if errors.As(err, &unexpectedUserType) {
+	if unexpectedUserType, ok := errors.AsType[client.UnexpectedUserTypeError](err); ok {
 		return unexpectedUserType.Error(), true
 	}
-	var rateLimit usage.RateLimitError
-	if errors.As(err, &rateLimit) {
+	if rateLimit, ok := errors.AsType[usage.RateLimitError](err); ok {
 		return rateLimit.Error(), true
 	}
 	return "", false

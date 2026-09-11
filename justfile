@@ -1,11 +1,13 @@
-default: lint test
+default: lint test vuln
 
 lint:
     go fmt
     go vet
-    golint ./...
     staticcheck ./...
     golangci-lint run
+
+vuln:
+    govulncheck ./...
 
 test:
     go test -race --vet=off ./...
