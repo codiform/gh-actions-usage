@@ -158,7 +158,9 @@ func TestCollector_IgnoresJobsWithoutUsableDurations(t *testing.T) {
 	inProgress.Status = "in_progress"
 	inProgress.CompletedAt = time.Time{}
 	negative := job(100, -3)
-	api.On("GetCheckRuns", *repo, "aaa").Return([]client.CheckRun{skipped, inProgress, negative, job(100, 7)}, nil)
+	noStart := job(100, 60)
+	noStart.StartedAt = time.Time{}
+	api.On("GetCheckRuns", *repo, "aaa").Return([]client.CheckRun{skipped, inProgress, negative, noStart, job(100, 7)}, nil)
 
 	// When
 	usage, err := newCollector(api).Collect(context.Background(), []*client.Repository{repo})
@@ -252,6 +254,27 @@ func TestCollector_AnnouncesLargeCollections(t *testing.T) {
 	// Then
 	require.NoError(t, err)
 	assert.Equal(t, []string{"codiform/gh-actions-usage: fetching job durations for 21 commits..."}, messages)
+}
+
+func TestCollector_StopsFetchingAfterAFailure(t *testing.T) {
+	// Given: two commits fetched one at a time, the first of which fails
+	api := new(apiMock)
+	expectListing(api, []client.Workflow{ci}, []client.WorkflowRun{
+		{ID: 10, WorkflowID: ci.ID, CheckSuiteID: 100, HeadSHA: "aaa"},
+		{ID: 11, WorkflowID: ci.ID, CheckSuiteID: 101, HeadSHA: "bbb"},
+	})
+	plentyOfBudget(api)
+	api.On("GetCheckRuns", *repo, "aaa").Return([]client.CheckRun{}, errAPI)
+	api.On("GetCheckRuns", *repo, "bbb").Return([]client.CheckRun{job(101, 5)}, nil)
+	collector := newCollector(api)
+	collector.Concurrency = 1
+
+	// When
+	_, err := collector.Collect(context.Background(), []*client.Repository{repo})
+
+	// Then
+	require.ErrorIs(t, err, errAPI)
+	api.AssertNotCalled(t, "GetCheckRuns", *repo, "bbb")
 }
 
 func TestCollector_PropagatesErrors(t *testing.T) {

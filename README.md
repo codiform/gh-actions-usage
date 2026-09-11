@@ -18,13 +18,16 @@ switched to computing usage from job durations instead.
 How it works, and what that means for the numbers:
 - Workflow runs created in the period are listed, and the jobs of each commit they ran on are fetched from the check
   runs API. Each completed job adds its elapsed time to its workflow; skipped jobs count for nothing.
+- A run belongs to the period in which it was created, and its jobs count in full: a run that starts on the last
+  day of a month and finishes on the first of the next is counted entirely in the month it started.
 - Only the latest attempt of a re-run job is counted, since GitHub replaces a job's check run when it is re-run.
 - Runs of workflows that have since been deleted are still counted, and are listed with the state `deleted`.
 - The result is elapsed job time, not billed minutes: GitHub rounds each job up to the minute and applies runner
   multipliers when billing, and neither adjustment is applied here.
 - Busy repositories need one API call per commit with runs in the period, plus a few for listing. The extension paces
   its requests to stay within GitHub's rate limits, waits and retries when GitHub asks it to, and refuses up front if
-  the remaining API budget is too small for the repositories requested.
+  the remaining API budget looks too small for the repositories requested. That check is an estimate, since the
+  number of jobs per commit is not known until they are fetched.
 
 I wrote a version of this extension before the Golang support was available for `gh`, which is still available [here](https://github.com/geoffreywiseman/gh-actuse).
 

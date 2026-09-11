@@ -36,14 +36,14 @@ type workflowRunPage struct {
 // GetWorkflowRuns returns every workflow run in the repository created between from and to (inclusive).
 //
 // GitHub returns at most maxRunsPerQuery results for a single query, so when the window holds more runs than
-// that and spans more than a day, the window is re-queried one UTC day at a time. A single day holding more
-// than maxRunsPerQuery runs is truncated to the first maxRunsPerQuery.
+// that and spans at least a day, the window is re-queried one UTC day at a time. A window shorter than a day
+// holding more than maxRunsPerQuery runs is truncated to the first maxRunsPerQuery.
 func (c *Client) GetWorkflowRuns(repository Repository, from, to time.Time) ([]WorkflowRun, error) {
 	first, total, err := c.getWorkflowRunPage(repository, from, to, 1)
 	if err != nil {
 		return nil, err
 	}
-	if total > maxRunsPerQuery && to.Sub(from) > day {
+	if total > maxRunsPerQuery && to.Sub(from) >= day {
 		return c.getWorkflowRunsByDay(repository, from, to)
 	}
 	runs := first
@@ -63,7 +63,7 @@ func (c *Client) GetWorkflowRuns(repository Repository, from, to time.Time) ([]W
 
 func (c *Client) getWorkflowRunsByDay(repository Repository, from, to time.Time) ([]WorkflowRun, error) {
 	var runs []WorkflowRun
-	for start := from; start.Before(to); start = start.Add(day) {
+	for start := from; !start.After(to); start = start.Add(day) {
 		end := start.Add(day - time.Second)
 		if end.After(to) {
 			end = to

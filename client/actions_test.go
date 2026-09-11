@@ -118,6 +118,48 @@ func TestClient_GetWorkflowRuns_SplitsByDayWhenOverCap(t *testing.T) {
 	rest.AssertNumberOfCalls(t, "Get", 1+8+7)
 }
 
+func TestClient_GetWorkflowRuns_SplitsWindowOfExactlyOneDay(t *testing.T) {
+	// Given: an inclusive 24-hour window can hold more than the cap, so it splits into the day and the final instant
+	rest, client := getTestClient()
+	nextMidnight := windowStart.Add(24 * time.Hour)
+	expectRunPage(rest, runsPath(windowStart, nextMidnight, 1), 1200, makeRuns(1, 100))
+	expectRunPage(rest, runsPath(windowStart, nextMidnight.Add(-time.Second), 1), 1199, makeRuns(1, 100))
+	for page := 2; page <= 10; page++ {
+		expectRunPage(rest, runsPath(windowStart, nextMidnight.Add(-time.Second), page), 1199, makeRuns(uint(page-1)*100+1, 100))
+	}
+	expectRunPage(rest, runsPath(windowStart, nextMidnight.Add(-time.Second), 11), 1199, nil)
+	expectRunPage(rest, runsPath(nextMidnight, nextMidnight, 1), 1, makeRuns(5000, 1))
+
+	// When
+	runs, err := client.GetWorkflowRuns(Repository{FullName: testRepoFullName}, windowStart, nextMidnight)
+
+	// Then
+	require.NoError(t, err)
+	assert.Len(t, runs, 1001)
+	assert.Equal(t, uint(5000), runs[1000].ID)
+}
+
+func TestClient_GetWorkflowRuns_SplitIncludesRunsAtTheFinalInstant(t *testing.T) {
+	// Given: a window ending exactly at midnight
+	rest, client := getTestClient()
+	end := time.Date(2026, time.September, 3, 0, 0, 0, 0, time.UTC)
+	expectRunPage(rest, runsPath(windowStart, end, 1), 1500, makeRuns(1, 100))
+	day1End := time.Date(2026, time.September, 1, 23, 59, 59, 0, time.UTC)
+	day2Start := time.Date(2026, time.September, 2, 0, 0, 0, 0, time.UTC)
+	day2End := time.Date(2026, time.September, 2, 23, 59, 59, 0, time.UTC)
+	expectRunPage(rest, runsPath(windowStart, day1End, 1), 2, makeRuns(1, 2))
+	expectRunPage(rest, runsPath(day2Start, day2End, 1), 2, makeRuns(3, 2))
+	expectRunPage(rest, runsPath(end, end, 1), 1, makeRuns(5, 1))
+
+	// When
+	runs, err := client.GetWorkflowRuns(Repository{FullName: testRepoFullName}, windowStart, end)
+
+	// Then
+	require.NoError(t, err)
+	assert.Len(t, runs, 5)
+	assert.Equal(t, uint(5), runs[4].ID)
+}
+
 func TestClient_GetWorkflowRuns_DoesNotSplitSingleDay(t *testing.T) {
 	// Given
 	rest, client := getTestClient()

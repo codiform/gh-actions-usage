@@ -25,9 +25,9 @@ const (
 	// maxBackoff caps the pause before retrying, even if GitHub asks for longer.
 	maxBackoff = 10 * time.Minute
 
-	headerRetryAfter        = "Retry-After"
-	headerRateLimitRemainin = "X-Ratelimit-Remaining"
-	headerRateLimitReset    = "X-Ratelimit-Reset"
+	headerRetryAfter         = "Retry-After"
+	headerRateLimitRemaining = "X-Ratelimit-Remaining"
+	headerRateLimitReset     = "X-Ratelimit-Reset"
 )
 
 // errBackoffTooLong is returned when GitHub asks the client to wait longer than maxBackoff before retrying.
@@ -88,8 +88,9 @@ func (t *throttle) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // retryAfter reports whether the response is a rate-limit rejection and, if so, how long to wait before retrying.
 // GitHub signals rate limiting with 403 or 429 plus either a Retry-After header (secondary limits) or
-// X-RateLimit-Remaining: 0 with an X-RateLimit-Reset timestamp (primary limit). A 403 with neither is an
-// ordinary authorization failure and is not retried.
+// X-RateLimit-Remaining: 0 with an X-RateLimit-Reset timestamp (primary limit). A 429 is a rate-limit response
+// even without those headers and gets the minimum backoff; a 403 without them is an ordinary authorization
+// failure and is not retried.
 func retryAfter(resp *http.Response, now time.Time) (time.Duration, bool) {
 	if resp.StatusCode != http.StatusForbidden && resp.StatusCode != http.StatusTooManyRequests {
 		return 0, false
@@ -98,12 +99,15 @@ func retryAfter(resp *http.Response, now time.Time) (time.Duration, bool) {
 	if err == nil {
 		return clampBackoff(time.Duration(secs) * time.Second), true
 	}
-	if resp.Header.Get(headerRateLimitRemainin) == "0" {
+	if resp.Header.Get(headerRateLimitRemaining) == "0" {
 		reset, err := strconv.ParseInt(resp.Header.Get(headerRateLimitReset), 10, 64)
 		if err != nil {
 			return minBackoff, true
 		}
 		return clampBackoff(time.Unix(reset, 0).Sub(now) + time.Second), true
+	}
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return minBackoff, true
 	}
 	return 0, false
 }

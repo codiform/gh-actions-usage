@@ -76,7 +76,7 @@ func TestThrottle_RetriesOnPrimaryLimitReset(t *testing.T) {
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if calls.Add(1) == 1 {
-			w.Header().Set(headerRateLimitRemainin, "0")
+			w.Header().Set(headerRateLimitRemaining, "0")
 			w.Header().Set(headerRateLimitReset, strconv.FormatInt(reset.Unix(), 10))
 			w.WriteHeader(http.StatusForbidden)
 			return
@@ -191,12 +191,13 @@ func TestRetryAfter(t *testing.T) {
 		{name: "ok", status: http.StatusOK, headers: map[string]string{headerRetryAfter: "5"}},
 		{name: "not found", status: http.StatusNotFound},
 		{name: "plain forbidden", status: http.StatusForbidden},
-		{name: "forbidden with remaining budget", status: http.StatusForbidden, headers: map[string]string{headerRateLimitRemainin: "12"}},
+		{name: "bare too many requests", status: http.StatusTooManyRequests, wait: minBackoff, limited: true},
+		{name: "forbidden with remaining budget", status: http.StatusForbidden, headers: map[string]string{headerRateLimitRemaining: "12"}},
 		{name: "retry-after", status: http.StatusTooManyRequests, headers: map[string]string{headerRetryAfter: "30"}, wait: 30 * time.Second, limited: true},
 		{name: "retry-after zero is clamped", status: http.StatusTooManyRequests, headers: map[string]string{headerRetryAfter: "0"}, wait: minBackoff, limited: true},
-		{name: "reset in the future", status: http.StatusForbidden, headers: map[string]string{headerRateLimitRemainin: "0", headerRateLimitReset: "1000060"}, wait: 61 * time.Second, limited: true},
-		{name: "reset in the past is clamped", status: http.StatusForbidden, headers: map[string]string{headerRateLimitRemainin: "0", headerRateLimitReset: "999000"}, wait: minBackoff, limited: true},
-		{name: "reset unparseable", status: http.StatusForbidden, headers: map[string]string{headerRateLimitRemainin: "0", headerRateLimitReset: "soon"}, wait: minBackoff, limited: true},
+		{name: "reset in the future", status: http.StatusForbidden, headers: map[string]string{headerRateLimitRemaining: "0", headerRateLimitReset: "1000060"}, wait: 61 * time.Second, limited: true},
+		{name: "reset in the past is clamped", status: http.StatusForbidden, headers: map[string]string{headerRateLimitRemaining: "0", headerRateLimitReset: "999000"}, wait: minBackoff, limited: true},
+		{name: "reset unparseable", status: http.StatusForbidden, headers: map[string]string{headerRateLimitRemaining: "0", headerRateLimitReset: "soon"}, wait: minBackoff, limited: true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

@@ -17,8 +17,9 @@ import (
 const (
 	// defaultConcurrency is the number of check-run requests kept in flight at once.
 	defaultConcurrency = 8
-	// callsPerCommit is the estimated number of API calls needed per commit: one, plus extra pages
-	// for commits that carry many jobs.
+	// callsPerCommit is the estimated number of API calls needed per commit: one, plus an allowance for the
+	// extra pages of commits that carry more than a hundred jobs. Job counts are unknown before fetching, so
+	// this is an estimate rather than a bound; if it proves short, the transport waits for the limit to reset.
 	callsPerCommit = 1.3
 	// progressThreshold is the number of commits above which a repository's collection is announced.
 	progressThreshold = 20
@@ -170,10 +171,15 @@ func (c *Collector) fetchDurations(ctx context.Context, plan *repoPlan) error {
 		c.Notify(fmt.Sprintf("%s: fetching job durations for %d commits...", plan.repo.FullName, len(plan.commits)))
 	}
 	var mu sync.Mutex
-	group, _ := errgroup.WithContext(ctx)
+	group, ctx := errgroup.WithContext(ctx)
 	group.SetLimit(c.concurrency())
 	for _, sha := range plan.commits {
 		group.Go(func() error {
+			// The API seam carries no context, so cancellation is observed between requests rather than
+			// within one: once a sibling fails or the caller cancels, queued commits are skipped.
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 			checkRuns, err := c.API.GetCheckRuns(*plan.repo, sha)
 			if err != nil {
 				return fmt.Errorf("listing check runs of %s@%s: %w", plan.repo.FullName, sha, err)
@@ -199,10 +205,13 @@ func (c *Collector) concurrency() int {
 	return defaultConcurrency
 }
 
-// duration returns the milliseconds a check run consumed. Jobs that did not complete, or were skipped, count for
-// nothing; skipped jobs in particular report a completion time before their start time.
+// duration returns the milliseconds a check run consumed. Jobs that did not complete, were skipped, or lack
+// either timestamp count for nothing; skipped jobs in particular report a completion time before their start time.
 func duration(checkRun client.CheckRun) uint {
 	if checkRun.Status != statusCompleted || checkRun.Conclusion == conclusionSkipped {
+		return 0
+	}
+	if checkRun.StartedAt.IsZero() || checkRun.CompletedAt.IsZero() {
 		return 0
 	}
 	elapsed := checkRun.CompletedAt.Sub(checkRun.StartedAt)
