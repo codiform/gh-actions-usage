@@ -69,37 +69,55 @@ func plentyOfBudget(api *apiMock) {
 	api.On("GetRateLimit").Return(&client.RateLimit{Limit: 5000, Remaining: 4000}, nil)
 }
 
-func TestCurrentPeriod(t *testing.T) {
-	type test struct {
-		name string
-		now  time.Time
-		from time.Time
-		to   time.Time
+func TestPeriod(t *testing.T) {
+	utc := func(year int, month time.Month, day, hour, minute, second int) time.Time {
+		return time.Date(year, month, day, hour, minute, second, 0, time.UTC)
 	}
 	est := time.FixedZone("EST", -5*3600)
-	tests := []test{
+	now := time.Date(2026, time.September, 9, 12, 34, 56, 789, time.UTC)
+	tests := []struct {
+		name       string
+		month, now time.Time
+		from, to   time.Time
+	}{
 		{
-			name: "mid month",
-			now:  time.Date(2026, time.September, 9, 12, 34, 56, 789, time.UTC),
-			from: time.Date(2026, time.September, 1, 0, 0, 0, 0, time.UTC),
-			to:   time.Date(2026, time.September, 9, 12, 34, 56, 0, time.UTC),
+			name: "current month runs up to now", month: utc(2026, time.September, 1, 0, 0, 0), now: now,
+			from: utc(2026, time.September, 1, 0, 0, 0), to: utc(2026, time.September, 9, 12, 34, 56),
 		},
 		{
-			name: "first instant of month",
-			now:  time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
-			from: time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
-			to:   time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
+			name: "any instant in the month selects it", month: utc(2026, time.September, 23, 8, 15, 0), now: now,
+			from: utc(2026, time.September, 1, 0, 0, 0), to: utc(2026, time.September, 9, 12, 34, 56),
 		},
 		{
-			name: "local evening is next month in UTC",
-			now:  time.Date(2026, time.August, 31, 22, 0, 0, 0, est),
-			from: time.Date(2026, time.September, 1, 0, 0, 0, 0, time.UTC),
-			to:   time.Date(2026, time.September, 1, 3, 0, 0, 0, time.UTC),
+			name: "first instant of month", month: utc(2026, time.February, 1, 0, 0, 0), now: utc(2026, time.February, 1, 0, 0, 0),
+			from: utc(2026, time.February, 1, 0, 0, 0), to: utc(2026, time.February, 1, 0, 0, 0),
+		},
+		{
+			name:  "local evening is next month in UTC",
+			month: time.Date(2026, time.August, 31, 22, 0, 0, 0, est), now: time.Date(2026, time.August, 31, 22, 0, 0, 0, est),
+			from: utc(2026, time.September, 1, 0, 0, 0), to: utc(2026, time.September, 1, 3, 0, 0),
+		},
+		{
+			name: "past month runs through its last second", month: utc(2026, time.August, 1, 0, 0, 0), now: now,
+			from: utc(2026, time.August, 1, 0, 0, 0), to: utc(2026, time.August, 31, 23, 59, 59),
+		},
+		{
+			name: "leap February", month: utc(2024, time.February, 1, 0, 0, 0), now: now,
+			from: utc(2024, time.February, 1, 0, 0, 0), to: utc(2024, time.February, 29, 23, 59, 59),
+		},
+		{
+			name: "December ends before the new year", month: utc(2025, time.December, 1, 0, 0, 0), now: now,
+			from: utc(2025, time.December, 1, 0, 0, 0), to: utc(2025, time.December, 31, 23, 59, 59),
+		},
+		{
+			name: "previous month is complete moments after it ended", month: utc(2026, time.August, 1, 0, 0, 0),
+			now:  utc(2026, time.September, 1, 0, 0, 0),
+			from: utc(2026, time.August, 1, 0, 0, 0), to: utc(2026, time.August, 31, 23, 59, 59),
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			from, to := CurrentPeriod(tc.now)
+			from, to := Period(tc.month, tc.now)
 			assert.Equal(t, tc.from, from)
 			assert.Equal(t, tc.to, to)
 			assert.Equal(t, time.UTC, from.Location())

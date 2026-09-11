@@ -2,11 +2,11 @@
 
 ## Project Overview
 
-`gh-actions-usage` is a [GitHub CLI](https://cli.github.com/) extension written in Go that measures the usage of GitHub Actions workflows in the current billing period (the calendar month, UTC). Usage is computed from job durations via the check runs API, so it works for any visible repository without billing permissions. (Until 2026 it read billable minutes from the per-workflow timing endpoint, which GitHub closed down with its new billing platform; the replacement billing usage report has no per-workflow breakdown.) It is installed and run as `gh actions-usage`.
+`gh-actions-usage` is a [GitHub CLI](https://cli.github.com/) extension written in Go that measures the usage of GitHub Actions workflows in the selected billing period (a calendar month in UTC; the current month by default, or a past month via `--month`). Usage is computed from job durations via the check runs API, so it works for any visible repository without billing permissions. (Until 2026 it read billable minutes from the per-workflow timing endpoint, which GitHub closed down with its new billing platform; the replacement billing usage report has no per-workflow breakdown.) It is installed and run as `gh actions-usage`.
 
 ## Architecture
 
-- **`main.go`** — Entry point; parses CLI flags (`--output`, `--skip`, `--verbose`), resolves targets to repositories, runs the collector, and prints results or errors.
+- **`main.go`** — Entry point; parses CLI flags (`--month`, `--output`, `--skip`, `--verbose`), resolves targets to repositories, runs the collector, and prints results or errors.
 - **`client/`** — GitHub API client wrapping `github.com/cli/go-gh/v2`. `client.go` provides `GetCurrentRepository`, `GetRepository`, `GetUser`, `GetAllRepositories`, and `GetWorkflows`; `actions.go` provides `GetWorkflowRuns` (splits windows that exceed GitHub's 1,000-result cap by day), `GetCheckRuns`, and `GetRateLimit`; `transport.go` is an `http.RoundTripper` that paces requests and retries rate-limited ones.
 - **`usage/`** — `Collector` computes `client.RepoUsage` for a period: seeds every workflow at zero, lists runs, joins each commit's check runs to workflows by check suite id, and sums completed non-skipped job durations. It preflights the rate limit before fetching check runs and returns `RateLimitError` if the budget is short.
 - **`format/`** — Output formatters: `human` (default, readable) and `tsv` (machine-readable). `formatters.go` registers formatters; `usage_summary.go` computes owner/total rollups shared by both formatters.
@@ -49,4 +49,4 @@ Or use the `justfile` targets: `just lint`, `just test`, `just build`.
 - New output formats should implement the `format.Formatter` interface and register via `format.GetFormatter`.
 - `format/usage_summary.go` (`summarizeUsage`) provides owner-level and all-repos rollups for formatters that need them.
 - The `--skip` flag omits repositories with no workflows from output.
-- The period is always the current calendar month in UTC (`usage.CurrentPeriod`); the collector takes explicit `From`/`To` bounds so a period flag could be added without changing it.
+- The period is a calendar month in UTC (`usage.Period`): the current month up to now by default, or a past month in full via `--month YYYY-MM`, which `main.go` validates (`parseMonth`) before computing the bounds. The collector takes explicit `From`/`To` bounds and knows nothing about months.
