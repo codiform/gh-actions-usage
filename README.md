@@ -135,7 +135,8 @@ codiform/gh-actions-usage (2 workflows; 4h 5m):
 - release (.github/workflows/release.yml, active, 2m 348ms)
 ```
 
-Display the usage for a mix of repos using a tab-separated value format (TSV):
+Display the usage for a mix of repos using a tab-separated value format (TSV), skipping repositories and workflows
+that had no usage in the period:
 
 ```shell
 gh-actions-usage on  feature/formatters [!] via 🐹 v1.21.1 took 2s
@@ -145,16 +146,6 @@ GitHub Actions Usage (3a7cfc0)
 Repo	Workflow	Milliseconds
 codiform/gh-actions-usage	.github/workflows/ci.yml	350000
 codiform/gh-actions-usage	.github/workflows/release.yml	2500
-kim0/brave-core	.github/workflows/pull_request.yml	0
-kim0/brave-core	.github/workflows/require-checklist.yml	0
-kim0/brave-core	.github/workflows/set-milestone-from-base-branch.yml	0
-kim0/brave-core	.github/workflows/alert_unsigned_commits.yml	0
-kim0/brave-core	.github/workflows/codeql-analysis.yml	0
-kim0/haven-main	.github/workflows/linux-227.yml	0
-kim0/haven-main	.github/workflows/linux-229.yml	0
-kim0/haven-main	.github/workflows/macos.yml	0
-kim0/haven-main	.github/workflows/windows.yml	0
-kim0/haven-main	.github/workflows/docker-build-push.yml	0
 kim0/haven-offshore	.github/workflows/main.yml	75035
 kim0/terraform-switcher	.github/workflows/release.yml	1239
 ```
@@ -164,7 +155,7 @@ kim0/terraform-switcher	.github/workflows/release.yml	1239
 - `--month=YYYY-MM` selects the billing period to report, a calendar month in UTC; defaults to the current month. The
   current month is reported up to now, and a past month in full. Future months are rejected.
 - `--output=human|tsv` selects the output format; `tsv` is machine-readable.
-- `--skip` omits repositories that have no workflows.
+- `--skip` omits repositories and workflows that had no usage in the period, leaving only where the time went.
 - `--verbose` prints full error details instead of the short message.
 
 # References
