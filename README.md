@@ -1,8 +1,9 @@
 ![Demo](doc/demo.gif)
 
 # GH Actions Usage
-GitHub CLI extension for measuring the usage of GitHub Actions workflows in the *current billing period*, which on
-GitHub's billing platform is the calendar month in UTC.
+GitHub CLI extension for measuring the usage of GitHub Actions workflows in the *selected billing period*, which on
+GitHub's billing platform is a calendar month in UTC. The current month is reported by default; `--month` selects a
+past one.
 
 Usage is computed from the durations of the jobs that ran in the period, so it works for any repository you can
 see, including public repositories and other people's repositories, without any billing permissions. Because it
@@ -124,6 +125,16 @@ Totals:
 - all repositories (3 repositories; 2 workflows; 0ms)
 ```
 
+Display the usage for a completed month instead of the current one:
+```shell
+❯ gh actions-usage --month=2026-08 codiform/gh-actions-usage
+GitHub Actions Usage
+
+codiform/gh-actions-usage (2 workflows; 4h 5m):
+- CI (.github/workflows/ci.yml, active, 4h 3m)
+- release (.github/workflows/release.yml, active, 2m 348ms)
+```
+
 Display the usage for a mix of repos using a tab-separated value format (TSV):
 
 ```shell
@@ -150,6 +161,8 @@ kim0/terraform-switcher	.github/workflows/release.yml	1239
 
 ## Flags
 
+- `--month=YYYY-MM` selects the billing period to report, a calendar month in UTC; defaults to the current month. The
+  current month is reported up to now, and a past month in full. Future months are rejected.
 - `--output=human|tsv` selects the output format; `tsv` is machine-readable.
 - `--skip` omits repositories that have no workflows.
 - `--verbose` prints full error details instead of the short message.

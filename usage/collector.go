@@ -61,11 +61,18 @@ type Collector struct {
 	Notify func(message string)
 }
 
-// CurrentPeriod returns the bounds of the current metered billing period, which is the calendar month in UTC,
-// from its first instant up to now.
-func CurrentPeriod(now time.Time) (time.Time, time.Time) {
+// Period returns the bounds of the metered billing period containing the instant month, which is the calendar
+// month in UTC: from its first instant through its last second, or up to now when the month is the current one.
+// The bounds of a month that has not started yet are not meaningful; callers should reject those first.
+func Period(month, now time.Time) (time.Time, time.Time) {
+	month = month.UTC()
 	now = now.UTC().Truncate(time.Second)
-	return time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC), now
+	from := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.UTC)
+	to := from.AddDate(0, 1, 0).Add(-time.Second)
+	if to.After(now) {
+		to = now
+	}
+	return from, to
 }
 
 // repoPlan holds what was learned about a repository from the cheap listing calls, before check runs are fetched.

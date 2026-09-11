@@ -20,9 +20,15 @@ import (
 
 var gh client.Client
 
+// monthLayout is the format of the --month flag, a year and month such as 2026-09.
+const monthLayout = "2006-01"
+
 type config struct {
 	format  format.Formatter
 	output  string
+	month   string
+	from    time.Time
+	to      time.Time
 	skip    bool
 	verbose bool
 	w       io.Writer
@@ -44,15 +50,28 @@ func (e UnknownUserError) Error() string {
 	return "Unknown user: " + string(e)
 }
 
+// InvalidMonthError is an error condition where the --month flag does not name a current or past month
+type InvalidMonthError struct {
+	Value  string
+	Reason string
+}
+
+// Error returns a formatted error message for InvalidMonthError
+func (e InvalidMonthError) Error() string {
+	return fmt.Sprintf("Invalid month %q: %s", e.Value, e.Reason)
+}
+
 func main() {
 	fmt.Printf("GitHub Actions Usage (%s)\n\n", getVersion())
 
 	gh = client.New()
 
+	now := time.Now()
 	cfg := &config{w: os.Stdout}
 	flag.BoolVar(&cfg.skip, "skip", false, "Skips displaying repositories with no workflows")
 	flag.BoolVar(&cfg.verbose, "verbose", false, "Print verbose output including additional error details")
 	flag.StringVar(&cfg.output, "output", "human", "Output format: human or TSV (machine readable)")
+	flag.StringVar(&cfg.month, "month", now.UTC().Format(monthLayout), "Billing period to report, as YYYY-MM")
 	flag.Parse()
 
 	var err error
@@ -62,6 +81,14 @@ func main() {
 		printHelp()
 		return
 	}
+
+	month, err := parseMonth(cfg.month, now)
+	if err != nil {
+		printError(*cfg, "Invalid option", err)
+		printHelp()
+		return
+	}
+	cfg.from, cfg.to = usage.Period(month, now)
 
 	if len(flag.Args()) < 1 {
 		tryDisplayCurrentRepo(*cfg)
@@ -99,7 +126,7 @@ func tryDisplayCurrentRepo(cfg config) {
 		printHelp()
 		return
 	}
-	repoFlowUsage, err := collectUsage([]*client.Repository{repo})
+	repoFlowUsage, err := collectUsage(cfg, []*client.Repository{repo})
 	if err != nil {
 		printError(cfg, "Error collecting usage", err)
 		return
@@ -118,7 +145,7 @@ func tryDisplayAllSpecified(cfg config, targets []string) {
 	for _, list := range repos {
 		targetsList = append(targetsList, list...)
 	}
-	repoFlowUsage, err := collectUsage(targetsList)
+	repoFlowUsage, err := collectUsage(cfg, targetsList)
 	if err != nil {
 		printError(cfg, "Error collecting usage", err)
 		return
@@ -133,13 +160,25 @@ func tryDisplayAllSpecified(cfg config, targets []string) {
 	cfg.format.PrintUsage(repoFlowUsage)
 }
 
-// collectUsage computes the usage of each repository's workflows for the current billing period.
-func collectUsage(repos []*client.Repository) (client.RepoUsage, error) {
-	from, to := usage.CurrentPeriod(time.Now())
+// parseMonth returns the first instant, in UTC, of the month named by value as YYYY-MM. Months that have not
+// started yet as of now are rejected, since there can be no usage to report for them.
+func parseMonth(value string, now time.Time) (time.Time, error) {
+	month, err := time.ParseInLocation(monthLayout, value, time.UTC)
+	if err != nil {
+		return time.Time{}, InvalidMonthError{Value: value, Reason: "expected a year and month such as 2026-09"}
+	}
+	if month.After(now) {
+		return time.Time{}, InvalidMonthError{Value: value, Reason: "the month has not started yet"}
+	}
+	return month, nil
+}
+
+// collectUsage computes the usage of each repository's workflows for the configured billing period.
+func collectUsage(cfg config, repos []*client.Repository) (client.RepoUsage, error) {
 	collector := usage.Collector{
 		API:  &gh,
-		From: from,
-		To:   to,
+		From: cfg.from,
+		To:   cfg.to,
 		Notify: func(message string) {
 			_, _ = fmt.Fprintln(os.Stderr, message)
 		},
@@ -178,6 +217,9 @@ func knownErrorMessage(err error) (string, bool) {
 	}
 	if unknownUser, ok := errors.AsType[UnknownUserError](err); ok {
 		return unknownUser.Error(), true
+	}
+	if invalidMonth, ok := errors.AsType[InvalidMonthError](err); ok {
+		return invalidMonth.Error(), true
 	}
 	if unexpectedHost, ok := errors.AsType[client.UnexpectedHostError](err); ok {
 		return unexpectedHost.Error(), true
@@ -252,8 +294,9 @@ func mapOwner(repos repoMap, userName string) error {
 }
 
 func printHelp() {
-	fmt.Println("USAGE: gh actions-usage [--output=human|tsv] [--skip] [--verbose] [target]...\n\n" +
-		"Gets the usage for all workflows in one or more GitHub repositories.\n\n" +
+	fmt.Println("USAGE: gh actions-usage [--month=YYYY-MM] [--output=human|tsv] [--skip] [--verbose] [target]...\n\n" +
+		"Gets the usage for all workflows in one or more GitHub repositories for the selected billing period,\n" +
+		"the current month by default.\n\n" +
 		"If target is not specified, actions-usage will attempt to get usage for a git repo in the current working directory.\n" +
 		"Target can be one of:\n" +
 		"- username (e.g. geoffreywiseman)\n" +
