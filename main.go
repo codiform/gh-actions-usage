@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -9,10 +10,12 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
+	"time"
 
-	gogherrors "github.com/cli/go-gh/pkg/api"
+	gogherrors "github.com/cli/go-gh/v2/pkg/api"
 	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"github.com/geoffreywiseman/gh-actions-usage/format"
+	"github.com/geoffreywiseman/gh-actions-usage/usage"
 )
 
 var gh client.Client
@@ -96,9 +99,11 @@ func tryDisplayCurrentRepo(cfg config) {
 		printHelp()
 		return
 	}
-	var repoFlowUsage = make(map[*client.Repository]client.WorkflowUsage)
-	r := getRepoUsage(repo)
-	repoFlowUsage[repo] = r
+	repoFlowUsage, err := collectUsage([]*client.Repository{repo})
+	if err != nil {
+		printError(cfg, "Error collecting usage", err)
+		return
+	}
 	cfg.format.PrintUsage(repoFlowUsage)
 }
 
@@ -109,17 +114,37 @@ func tryDisplayAllSpecified(cfg config, targets []string) {
 		printHelp()
 		return
 	}
-	var repoFlowUsage = make(map[*client.Repository]client.WorkflowUsage)
+	var targetsList []*client.Repository
 	for _, list := range repos {
-		for _, item := range list {
-			r := getRepoUsage(item)
-			if len(r) == 0 && cfg.skip {
-				continue
+		targetsList = append(targetsList, list...)
+	}
+	repoFlowUsage, err := collectUsage(targetsList)
+	if err != nil {
+		printError(cfg, "Error collecting usage", err)
+		return
+	}
+	if cfg.skip {
+		for repo, flows := range repoFlowUsage {
+			if len(flows) == 0 {
+				delete(repoFlowUsage, repo)
 			}
-			repoFlowUsage[item] = r
 		}
 	}
 	cfg.format.PrintUsage(repoFlowUsage)
+}
+
+// collectUsage computes the usage of each repository's workflows for the current billing period.
+func collectUsage(repos []*client.Repository) (client.RepoUsage, error) {
+	from, to := usage.CurrentPeriod(time.Now())
+	collector := usage.Collector{
+		API:  &gh,
+		From: from,
+		To:   to,
+		Notify: func(message string) {
+			_, _ = fmt.Fprintln(os.Stderr, message)
+		},
+	}
+	return collector.Collect(context.Background(), repos) //nolint:wrapcheck // caller prints the error as-is
 }
 
 type repoMap map[*client.User][]*client.Repository
@@ -138,8 +163,7 @@ func printError(cfg config, prefix string, err error) {
 		_, _ = fmt.Fprintf(cfg.w, "%s\n\n", msg)
 		return
 	}
-	var httpErr gogherrors.HTTPError
-	if errors.As(err, &httpErr) {
+	if httpErr, ok := errors.AsType[*gogherrors.HTTPError](err); ok {
 		_, _ = fmt.Fprintf(cfg.w, "%s: HTTP %d: %s\n\n", prefix, httpErr.StatusCode, httpErr.Message)
 		return
 	}
@@ -149,21 +173,20 @@ func printError(cfg config, prefix string, err error) {
 // knownErrorMessage checks if err contains a well-typed, self-describing error and returns
 // its clean message. These errors do not require --verbose to produce a useful message.
 func knownErrorMessage(err error) (string, bool) {
-	var unknownRepo UnknownRepoError
-	if errors.As(err, &unknownRepo) {
+	if unknownRepo, ok := errors.AsType[UnknownRepoError](err); ok {
 		return unknownRepo.Error(), true
 	}
-	var unknownUser UnknownUserError
-	if errors.As(err, &unknownUser) {
+	if unknownUser, ok := errors.AsType[UnknownUserError](err); ok {
 		return unknownUser.Error(), true
 	}
-	var unexpectedHost client.UnexpectedHostError
-	if errors.As(err, &unexpectedHost) {
+	if unexpectedHost, ok := errors.AsType[client.UnexpectedHostError](err); ok {
 		return unexpectedHost.Error(), true
 	}
-	var unexpectedUserType client.UnexpectedUserTypeError
-	if errors.As(err, &unexpectedUserType) {
+	if unexpectedUserType, ok := errors.AsType[client.UnexpectedUserTypeError](err); ok {
 		return unexpectedUserType.Error(), true
+	}
+	if rateLimit, ok := errors.AsType[usage.RateLimitError](err); ok {
+		return rateLimit.Error(), true
 	}
 	return "", false
 }
@@ -226,24 +249,6 @@ func mapOwner(repos repoMap, userName string) error {
 	list = append(list, ors...)
 	repos[user] = list
 	return nil
-}
-
-func getRepoUsage(repo *client.Repository) client.WorkflowUsage {
-	workflows, err := gh.GetWorkflows(*repo)
-	if err != nil {
-		panic(err)
-	}
-
-	var result = make(client.WorkflowUsage)
-	for _, flow := range workflows {
-		usage, err := gh.GetWorkflowUsage(*repo, flow)
-		if err != nil {
-			panic(err)
-		}
-		result[flow] = usage.TotalMs()
-	}
-
-	return result
 }
 
 func printHelp() {

@@ -7,7 +7,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/cli/go-gh/pkg/api"
+	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +39,7 @@ func TestPrintError_Verbose_GenericError(t *testing.T) {
 func TestPrintError_Verbose_HTTPError(t *testing.T) {
 	// Given
 	var out bytes.Buffer
-	err := fmt.Errorf("could not get repository: %w", api.HTTPError{StatusCode: 403, Message: "Forbidden"})
+	err := fmt.Errorf("could not get repository: %w", &api.HTTPError{StatusCode: 403, Message: "Forbidden"})
 
 	// When
 	printError(cfgVerbose(&out), "No current repository", err)
@@ -113,7 +113,7 @@ func TestPrintError_UnexpectedUserType(t *testing.T) {
 func TestPrintError_HTTPError(t *testing.T) {
 	// Given
 	var out bytes.Buffer
-	err := api.HTTPError{StatusCode: 403, Message: "Resource not accessible by integration"}
+	err := &api.HTTPError{StatusCode: 403, Message: "Resource not accessible by integration"}
 
 	// When
 	printError(cfgQuiet(&out), "No current repository", err)
@@ -125,7 +125,7 @@ func TestPrintError_HTTPError(t *testing.T) {
 func TestPrintError_HTTPError_Wrapped(t *testing.T) {
 	// Given
 	var out bytes.Buffer
-	err := fmt.Errorf("could not get current repository: %w", api.HTTPError{StatusCode: 401, Message: "Unauthorized"})
+	err := fmt.Errorf("could not get current repository: %w", &api.HTTPError{StatusCode: 401, Message: "Unauthorized"})
 
 	// When
 	printError(cfgQuiet(&out), "No current repository", err)

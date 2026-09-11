@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cli/go-gh"
-	"github.com/cli/go-gh/pkg/api"
+	"github.com/cli/go-gh/v2/pkg/api"
+	"github.com/cli/go-gh/v2/pkg/repository"
 )
 
-// New creates a new Client instance, initialized with a GH RESTClient
+// New creates a new Client instance, initialized with a GH RESTClient that paces requests to stay within
+// GitHub's rate limits and retries requests that are rejected as rate limited.
 func New() Client {
-	rest, err := gh.RESTClient(nil)
+	rest, err := api.NewRESTClient(api.ClientOptions{Transport: newThrottle(http.DefaultTransport)})
 	if err != nil {
 		panic(err)
 	}
@@ -20,9 +21,15 @@ func New() Client {
 	return Client{Rest: rest}
 }
 
+// REST is the subset of the go-gh REST client used by Client, expressed as an interface so that it can be mocked.
+type REST interface {
+	// Get issues a GET request to the specified path and decodes the JSON response into response.
+	Get(path string, response any) error
+}
+
 // Client is a GH API client customized for the specifics of `gh-actions-usage`.
 type Client struct {
-	Rest api.RESTClient
+	Rest REST
 }
 
 // Workflow represents a GitHub Actions workflow
@@ -89,38 +96,6 @@ func (c *Client) getWorkflowPage(repository Repository, page uint8) ([]Workflow,
 	return response.Workflows, nil
 }
 
-// Usage represents the usage of a workflow within the billing period
-type Usage struct {
-	Billable map[string]*UsageDetails `json:"billable"`
-}
-
-// UsageDetails is a sub-item of Usage which is basically just a container for the total milliseconds of usage
-type UsageDetails struct {
-	TotalMs uint `json:"total_ms"`
-}
-
-// GetWorkflowUsage returns the Usage for a Workflow in a Repository
-func (c *Client) GetWorkflowUsage(repository Repository, workflow Workflow) (*Usage, error) {
-	response := Usage{}
-	path := fmt.Sprintf("repos/%s/actions/workflows/%d/timing", repository.FullName, workflow.ID)
-	err := c.Rest.Get(path, &response)
-	if err != nil {
-		return nil, fmt.Errorf("could not get workflow usage: %w", err)
-	}
-	return &response, nil
-}
-
-// TotalMs sums the milliseconds across all runner environments
-func (u *Usage) TotalMs() uint {
-	var total uint
-	for _, details := range u.Billable {
-		if details != nil {
-			total += details.TotalMs
-		}
-	}
-	return total
-}
-
 // Repository represents a GitHub Repository
 type Repository struct {
 	Owner    *User
@@ -152,20 +127,20 @@ func (c *Client) GetRepository(fullName string) (*Repository, error) {
 
 // GetCurrentRepository gets the Repository that corresponds to the current working directory, or nil if there is none
 func (c *Client) GetCurrentRepository() (*Repository, error) {
-	repo, err := gh.CurrentRepository()
+	repo, err := repository.Current()
 	if err != nil {
 		return nil, fmt.Errorf("could not get current repository: %w", err)
 	}
 
-	if repo.Host() != "github.com" {
-		return nil, UnexpectedHostError(repo.Host())
+	if repo.Host != "github.com" {
+		return nil, UnexpectedHostError(repo.Host)
 	}
 
-	return c.GetRepository(fmt.Sprintf("%s/%s", repo.Owner(), repo.Name()))
+	return c.GetRepository(fmt.Sprintf("%s/%s", repo.Owner, repo.Name))
 }
 
 func is404(err error) bool {
-	var httpError api.HTTPError
+	var httpError *api.HTTPError
 	return errors.As(err, &httpError) && httpError.StatusCode == http.StatusNotFound
 }
 

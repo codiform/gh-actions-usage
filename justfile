@@ -1,11 +1,13 @@
-default: lint test
+default: lint test vuln
 
 lint:
     go fmt
     go vet
-    golint ./...
     staticcheck ./...
     golangci-lint run
+
+vuln:
+    govulncheck ./...
 
 test:
     go test -race --vet=off ./...
@@ -17,6 +19,6 @@ install-stable:
     gh extension remove codiform/gh-actions-usage
     gh extension install codiform/gh-actions-usage
 
-install-dev:
+install-dev: build
     gh extension remove codiform/gh-actions-usage
     gh extension install .

@@ -1,11 +1,10 @@
 package client
 
 import (
-	"encoding/json"
 	"net/url"
 	"testing"
 
-	"github.com/cli/go-gh/pkg/api"
+	"github.com/cli/go-gh/v2/pkg/api"
 	mocks "github.com/geoffreywiseman/gh-actions-usage/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -41,7 +40,7 @@ func TestClient_GetRepository_NotFound(t *testing.T) {
 	expectedName := testRepoFullName
 	requestURL, _ := url.Parse("https://github.com/" + testRepoFullName)
 	rest.On("Get", "repos/"+testRepoFullName, mock.Anything).
-		Return(api.HTTPError{
+		Return(&api.HTTPError{
 			Errors:     nil,
 			Headers:    nil,
 			Message:    "Couldn't find repo",
@@ -63,7 +62,7 @@ func TestClient_GetRepository_Failure(t *testing.T) {
 	expectedName := testRepoFullName
 	requestURL, _ := url.Parse("https://github.com/" + testRepoFullName)
 	rest.On("Get", "repos/"+testRepoFullName, mock.Anything).
-		Return(api.HTTPError{
+		Return(&api.HTTPError{
 			Errors:     nil,
 			Headers:    nil,
 			Message:    "Server Error",
@@ -106,50 +105,6 @@ func TestClient_GetWorkflows(t *testing.T) {
 	assert.Equal(t, "Build", repos[0].Name)
 }
 
-func TestClient_GetWorkflowUsage(t *testing.T) {
-	// Given
-	rest, client := getTestClient()
-	repo := Repository{ID: 1, Name: "gh-actions-usage", FullName: testRepoFullName}
-	flow := Workflow{ID: 2, Name: "CI", Path: "repos/" + testRepoFullName + "/actions/workflows/2", State: "active"}
-	rest.On("Get", "repos/"+testRepoFullName+"/actions/workflows/2/timing", mock.Anything).
-		Return(nil).
-		Run(func(args mock.Arguments) {
-			u := args.Get(1).(*Usage)
-			u.Billable = map[string]*UsageDetails{
-				"WINDOWS": {TotalMs: 4},
-				"UBUNTU":  {TotalMs: 180},
-				"MACOS":   {TotalMs: 16},
-			}
-		})
-
-	// When
-	usage, err := client.GetWorkflowUsage(repo, flow)
-
-	// Then
-	require.NoError(t, err)
-	assert.Equal(t, uint(200), usage.TotalMs())
-}
-
-func TestUsage_TotalMs_ApiFormat(t *testing.T) {
-	// Verify that the Usage struct correctly deserializes the GitHub API response format,
-	// which uses uppercase environment keys like UBUNTU, MACOS, WINDOWS.
-	data := `{"billable":{"UBUNTU":{"total_ms":180000},"MACOS":{"total_ms":240000},"WINDOWS":{"total_ms":300000}}}`
-	var u Usage
-	err := json.Unmarshal([]byte(data), &u)
-	require.NoError(t, err)
-	assert.Equal(t, uint(720000), u.TotalMs())
-}
-
-func TestUsage_TotalMs_AdditionalRunnerTypes(t *testing.T) {
-	// Verify that the Usage struct correctly captures additional runner environment keys
-	// that GitHub may return for larger or ARM64 runners.
-	data := `{"billable":{"UBUNTU":{"total_ms":180000},"UBUNTU_ARM":{"total_ms":60000},"MACOS":{"total_ms":240000}}}`
-	var u Usage
-	err := json.Unmarshal([]byte(data), &u)
-	require.NoError(t, err)
-	assert.Equal(t, uint(480000), u.TotalMs())
-}
-
 // Straightforward Test
 func TestClient_GetUser(t *testing.T) {
 	// Given
@@ -178,7 +133,7 @@ func TestClient_GetUser_NotFound(t *testing.T) {
 	expectedName := "codiform2"
 	requestURL, _ := url.Parse("https://github.com/users/codiform2")
 	rest.On("Get", "users/codiform2", mock.Anything).
-		Return(api.HTTPError{
+		Return(&api.HTTPError{
 			Errors:     nil,
 			Headers:    nil,
 			Message:    "Not Found",

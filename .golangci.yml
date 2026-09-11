@@ -6,6 +6,7 @@ linters:
     - depguard
     # don't require all struct fields to be initialized
     - exhaustruct
+    - exhaustruct_v5
     # fmt.Printf/Println are appropriate for a CLI tool
     - forbidigo
     # standard testify mock pattern in tests
@@ -16,6 +17,8 @@ linters:
     - gochecknoglobals
     # no requirement for comments to end with a period
     - godot
+    # deprecated since golangci-lint 2.12 in favour of gomodguard_v2, which default: all already enables
+    - gomodguard
     # returning interfaces from factory functions is idiomatic Go
     - ireturn
     # no line length limit
@@ -38,3 +41,13 @@ linters:
     - wsl
     # opinionated whitespace cuddling rules
     - wsl_v5
+  exclusions:
+    rules:
+      # repeated literals in tests are fixtures, not constants in disguise
+      - linters:
+          - goconst
+        path: _test\.go
+formatters:
+  enable:
+    - gofmt
+    - goimports
