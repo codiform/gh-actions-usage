@@ -19,6 +19,6 @@ install-stable:
     gh extension remove codiform/gh-actions-usage
     gh extension install codiform/gh-actions-usage
 
-install-dev:
+install-dev: build
     gh extension remove codiform/gh-actions-usage
     gh extension install .
