@@ -217,3 +217,24 @@ func TestPrintError_GenericError(t *testing.T) {
 	// Then
 	assert.Equal(t, "No current repository (use --verbose for details)\n\n", out.String())
 }
+
+func TestSkipUnused(t *testing.T) {
+	// Given
+	ci := client.Workflow{Name: "CI", Path: ".github/workflows/ci.yml", State: "active", ID: 1}
+	release := client.Workflow{Name: "release", Path: ".github/workflows/release.yml", State: "active", ID: 2}
+	disabled := client.Workflow{Name: "nightly", Path: ".github/workflows/nightly.yml", State: "disabled_manually", ID: 3}
+	busy := &client.Repository{FullName: "codiform/busy"}
+	idle := &client.Repository{FullName: "codiform/idle"}
+	empty := &client.Repository{FullName: "codiform/empty"}
+	usage := client.RepoUsage{
+		busy:  {ci: 350000, release: 0, disabled: 2500},
+		idle:  {ci: 0, release: 0},
+		empty: {},
+	}
+
+	// When
+	skipUnused(usage)
+
+	// Then
+	assert.Equal(t, client.RepoUsage{busy: {ci: 350000, disabled: 2500}}, usage)
+}

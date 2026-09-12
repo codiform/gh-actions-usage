@@ -68,7 +68,7 @@ func main() {
 
 	now := time.Now()
 	cfg := &config{w: os.Stdout}
-	flag.BoolVar(&cfg.skip, "skip", false, "Skips displaying repositories with no workflows")
+	flag.BoolVar(&cfg.skip, "skip", false, "Skips displaying repositories and workflows with no usage in the period")
 	flag.BoolVar(&cfg.verbose, "verbose", false, "Print verbose output including additional error details")
 	flag.StringVar(&cfg.output, "output", "human", "Output format: human or TSV (machine readable)")
 	flag.StringVar(&cfg.month, "month", now.UTC().Format(monthLayout), "Billing period to report, as YYYY-MM")
@@ -131,6 +131,9 @@ func tryDisplayCurrentRepo(cfg config) {
 		printError(cfg, "Error collecting usage", err)
 		return
 	}
+	if cfg.skip {
+		skipUnused(repoFlowUsage)
+	}
 	cfg.format.PrintUsage(repoFlowUsage)
 }
 
@@ -151,13 +154,24 @@ func tryDisplayAllSpecified(cfg config, targets []string) {
 		return
 	}
 	if cfg.skip {
-		for repo, flows := range repoFlowUsage {
-			if len(flows) == 0 {
-				delete(repoFlowUsage, repo)
-			}
-		}
+		skipUnused(repoFlowUsage)
 	}
 	cfg.format.PrintUsage(repoFlowUsage)
+}
+
+// skipUnused removes the workflows that had no usage in the period, and then the repositories left with no
+// workflows, so that what remains is only where the usage went.
+func skipUnused(repoFlowUsage client.RepoUsage) {
+	for repo, flows := range repoFlowUsage {
+		for workflow, used := range flows {
+			if used == 0 {
+				delete(flows, workflow)
+			}
+		}
+		if len(flows) == 0 {
+			delete(repoFlowUsage, repo)
+		}
+	}
 }
 
 // parseMonth returns the first instant, in UTC, of the month named by value as YYYY-MM. Months that have not
@@ -301,5 +315,10 @@ func printHelp() {
 		"Target can be one of:\n" +
 		"- username (e.g. geoffreywiseman)\n" +
 		"- organization (e.g. codiform)\n" +
-		"- repository (e.g. codiform/gh-actions-usage)")
+		"- repository (e.g. codiform/gh-actions-usage)\n\n" +
+		"Flags:\n" +
+		"- --month=YYYY-MM selects the billing period, a calendar month in UTC; defaults to the current month\n" +
+		"- --output=human|tsv selects the output format\n" +
+		"- --skip omits repositories and workflows with no usage in the period\n" +
+		"- --verbose prints full error details")
 }
