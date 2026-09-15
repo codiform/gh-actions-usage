@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	// requestsPerSecond keeps the extension under GitHub's secondary limit of roughly 900 REST points per minute.
-	requestsPerSecond = 10
+	// RequestsPerSecond keeps the extension under GitHub's secondary limit of roughly 900 REST points per minute.
+	// It is exported so that callers can estimate how long a known number of requests will take.
+	RequestsPerSecond = 10
 	// requestBurst is the number of requests that may be issued back-to-back before the limiter starts pacing.
 	requestBurst = 10
 	// maxAttempts is the total number of times a request will be tried when GitHub reports it as rate limited.
@@ -47,7 +48,7 @@ type throttle struct {
 func newThrottle(next http.RoundTripper) *throttle {
 	return &throttle{
 		next:    next,
-		limiter: rate.NewLimiter(requestsPerSecond, requestBurst),
+		limiter: rate.NewLimiter(RequestsPerSecond, requestBurst),
 		now:     time.Now,
 		sleep:   sleepContext,
 		notify:  notifyStderr,

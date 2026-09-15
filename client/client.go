@@ -62,23 +62,20 @@ func (e UnexpectedHostError) Error() string {
 	return "Unexpected host: " + string(e)
 }
 
-// GetWorkflows returns a slice of Workflow instances, one for each workflow in the repository
+// GetWorkflows returns a slice of Workflow instances, one for each workflow in the repository. Pages are the
+// largest GitHub allows, and a short page ends the listing without a further call.
 func (c *Client) GetWorkflows(repository Repository) ([]Workflow, error) {
-	var page uint8 = 1
 	var workflows = make([]Workflow, 0)
-
-	for {
+	for page := 1; ; page++ {
 		wfp, err := c.getWorkflowPage(repository, page)
 		if err != nil {
 			return nil, err
 		}
-		if len(wfp) == 0 {
-			break
-		}
 		workflows = append(workflows, wfp...)
-		page++
+		if len(wfp) < perPage {
+			return workflows, nil
+		}
 	}
-	return workflows, nil
 }
 
 type workflowPage struct {
@@ -86,9 +83,9 @@ type workflowPage struct {
 	TotalCount uint64 `json:"total_count"`
 }
 
-func (c *Client) getWorkflowPage(repository Repository, page uint8) ([]Workflow, error) {
+func (c *Client) getWorkflowPage(repository Repository, page int) ([]Workflow, error) {
 	response := workflowPage{}
-	url := fmt.Sprintf("repos/%s/actions/workflows?page=%d", repository.FullName, page)
+	url := fmt.Sprintf("repos/%s/actions/workflows?per_page=%d&page=%d", repository.FullName, perPage, page)
 	err := c.Rest.Get(url, &response)
 	if err != nil {
 		return nil, fmt.Errorf("could not get workflow page: %w", err)
@@ -157,12 +154,11 @@ func (c *Client) GetUser(name string) (*User, error) {
 	return &response, nil
 }
 
-// GetAllRepositories returns a list of repositories for the specified user
+// GetAllRepositories returns a list of repositories for the specified user. Pages are the largest GitHub
+// allows, and a short page ends the listing without a further call.
 func (c *Client) GetAllRepositories(user *User) ([]*Repository, error) {
-	var page uint8 = 1
 	var repos = make([]*Repository, 0)
-
-	for {
+	for page := 1; ; page++ {
 		path, err := c.getAllRepositoriesPath(user, page)
 		if err != nil {
 			return nil, err
@@ -171,21 +167,19 @@ func (c *Client) GetAllRepositories(user *User) ([]*Repository, error) {
 		if err != nil {
 			return nil, err
 		}
-		if len(rp) == 0 {
-			break
-		}
 		repos = append(repos, rp...)
-		page++
+		if len(rp) < perPage {
+			return repos, nil
+		}
 	}
-	return repos, nil
 }
 
-func (c *Client) getAllRepositoriesPath(user *User, page uint8) (string, error) {
+func (c *Client) getAllRepositoriesPath(user *User, page int) (string, error) {
 	switch user.Type {
 	case "Organization":
-		return fmt.Sprintf("orgs/%s/repos?page=%d", user.Login, page), nil
+		return fmt.Sprintf("orgs/%s/repos?per_page=%d&page=%d", user.Login, perPage, page), nil
 	case "User":
-		return fmt.Sprintf("users/%s/repos?page=%d", user.Login, page), nil
+		return fmt.Sprintf("users/%s/repos?per_page=%d&page=%d", user.Login, perPage, page), nil
 	default:
 		return "", UnexpectedUserTypeError(user.Type)
 	}

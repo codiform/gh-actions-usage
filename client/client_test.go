@@ -82,18 +82,12 @@ func TestClient_GetWorkflows(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
 	repo := Repository{ID: 1, Name: "gh-actions-usage", FullName: testRepoFullName}
-	rest.On("Get", "repos/"+testRepoFullName+"/actions/workflows?page=1", mock.Anything).
+	rest.On("Get", "repos/"+testRepoFullName+"/actions/workflows?per_page=100&page=1", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
 			wp := args.Get(1).(*workflowPage)
 			wp.Workflows = append(wp.Workflows, Workflow{ID: 1, Name: "Build", Path: ".github/workflows/build.yml", State: "active"})
 			wp.TotalCount = 1
-		})
-	rest.On("Get", "repos/"+testRepoFullName+"/actions/workflows?page=2", mock.Anything).
-		Return(nil).
-		Run(func(args mock.Arguments) {
-			wp := args.Get(1).(*workflowPage)
-			wp.TotalCount = 0
 		})
 
 	// When
@@ -153,14 +147,12 @@ func TestClient_GetUser_NotFound(t *testing.T) {
 func TestClient_GetAllRepositories(t *testing.T) {
 	// Given
 	rest, client := getTestClient()
-	rest.On("Get", "users/geoffreywiseman/repos?page=1", mock.Anything).
+	rest.On("Get", "users/geoffreywiseman/repos?per_page=100&page=1", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
 			ars := args.Get(1).(*[]*Repository)
 			*ars = append(*ars, &Repository{ID: 427462569, Name: "gh-actuse", FullName: "geoffreywiseman/gh-actuse"})
 		})
-	rest.On("Get", "users/geoffreywiseman/repos?page=2", mock.Anything).
-		Return(nil) //.
 	owner := &User{ID: 49935, Login: "geoffreywiseman", Type: "User"}
 
 	// When
