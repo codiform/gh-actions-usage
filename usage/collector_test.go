@@ -3,6 +3,7 @@ package usage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -251,27 +252,203 @@ func TestCollector_PreflightsAllRepositoriesTogether(t *testing.T) {
 	api.AssertNumberOfCalls(t, "GetRateLimit", 1)
 }
 
-func TestCollector_AnnouncesLargeCollections(t *testing.T) {
+// busyRepo expects the listing of a repository with the given number of commits, each with an empty fetch.
+func busyRepo(api *apiMock, repository *client.Repository, commits int) {
+	runs := make([]client.WorkflowRun, 0, commits)
+	for i := range commits {
+		sha := fmt.Sprintf("%s-%d", repository.Name, i)
+		runs = append(runs, client.WorkflowRun{ID: uint(i), WorkflowID: ci.ID, CheckSuiteID: uint(i), HeadSHA: sha})
+		api.On("GetCheckRuns", *repository, sha).Return([]client.CheckRun{}, nil)
+	}
+	api.On("GetWorkflows", *repository).Return([]client.Workflow{ci}, nil)
+	api.On("GetWorkflowRuns", *repository, from, to).Return(runs, nil)
+}
+
+// recorder captures what a collector reports through its hooks.
+type recorder struct {
+	messages []string
+	listed   []uint
+	done     []uint
+	totals   map[uint]bool
+}
+
+func record(collector *Collector) *recorder {
+	r := &recorder{totals: make(map[uint]bool)}
+	collector.Notify = func(message string) { r.messages = append(r.messages, message) }
+	collector.ListingProgress = func(done, _ uint) { r.listed = append(r.listed, done) }
+	collector.FetchProgress = func(done, total uint) {
+		r.done = append(r.done, done)
+		r.totals[total] = true
+	}
+	return r
+}
+
+// manyRepos expects the listing of enough idle repositories to pass the listing threshold.
+func manyRepos(api *apiMock) []*client.Repository {
+	repos := make([]*client.Repository, 0, listingThreshold+1)
+	for i := range listingThreshold + 1 {
+		repository := &client.Repository{FullName: fmt.Sprintf("codiform/repo-%d", i), Name: fmt.Sprintf("repo-%d", i)}
+		busyRepo(api, repository, 0)
+		repos = append(repos, repository)
+	}
+	return repos
+}
+
+func TestCollector_ForewarnsAndReportsProgressOfLargeCollections(t *testing.T) {
 	// Given
 	api := new(apiMock)
-	runs := make([]client.WorkflowRun, 0, progressThreshold+1)
-	for i := range progressThreshold + 1 {
-		sha := string(rune('a' + i))
-		runs = append(runs, client.WorkflowRun{ID: uint(i), WorkflowID: ci.ID, CheckSuiteID: uint(i), HeadSHA: sha})
-		api.On("GetCheckRuns", *repo, sha).Return([]client.CheckRun{}, nil)
-	}
-	expectListing(api, []client.Workflow{ci}, runs)
+	busyRepo(api, repo, progressThreshold+1)
 	plentyOfBudget(api)
-	var messages []string
 	collector := newCollector(api)
-	collector.Notify = func(message string) { messages = append(messages, message) }
+	reported := record(collector)
 
 	// When
 	_, err := collector.Collect(context.Background(), []*client.Repository{repo})
 
 	// Then
 	require.NoError(t, err)
-	assert.Equal(t, []string{"codiform/gh-actions-usage: fetching job durations for 21 commits..."}, messages)
+	assert.Equal(t, []string{"Fetching job durations for 21 commits in codiform/gh-actions-usage (about 28 API calls, 3 seconds)..."}, reported.messages)
+	assert.Empty(t, reported.listed)
+	assert.Len(t, reported.done, progressThreshold+1)
+	assert.IsIncreasing(t, reported.done)
+	assert.Equal(t, uint(progressThreshold+1), reported.done[len(reported.done)-1])
+	assert.Equal(t, map[uint]bool{progressThreshold + 1: true}, reported.totals)
+}
+
+func TestCollector_CountsProgressAcrossRepositories(t *testing.T) {
+	// Given: three repositories, one of them idle, whose commits together pass the threshold
+	api := new(apiMock)
+	other := &client.Repository{FullName: "codiform/other", Name: "other"}
+	idle := &client.Repository{FullName: "codiform/idle", Name: "idle"}
+	busyRepo(api, repo, 15)
+	busyRepo(api, other, 15)
+	busyRepo(api, idle, 0)
+	plentyOfBudget(api)
+	collector := newCollector(api)
+	reported := record(collector)
+
+	// When
+	_, err := collector.Collect(context.Background(), []*client.Repository{repo, other, idle})
+
+	// Then: one forewarning for the busy repositories, and one running count that spans both
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Fetching job durations for 30 commits in 2 repositories (about 39 API calls, 4 seconds)..."}, reported.messages)
+	assert.Len(t, reported.done, 30)
+	assert.IsIncreasing(t, reported.done)
+	assert.Equal(t, map[uint]bool{30: true}, reported.totals)
+}
+
+func TestCollector_AnnouncesAndCountsListingOfManyRepositories(t *testing.T) {
+	// Given
+	api := new(apiMock)
+	repos := manyRepos(api)
+	plentyOfBudget(api)
+	collector := newCollector(api)
+	reported := record(collector)
+
+	// When
+	_, err := collector.Collect(context.Background(), repos)
+
+	// Then: the listing is preflighted and announced, and counted repository by repository
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Listing workflows and runs for 11 repositories..."}, reported.messages)
+	assert.Equal(t, []uint{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, reported.listed)
+	assert.Empty(t, reported.done)
+	api.AssertNumberOfCalls(t, "GetRateLimit", 1)
+}
+
+func TestCollector_RefusesToListManyRepositoriesWhenBudgetIsShort(t *testing.T) {
+	// Given
+	api := new(apiMock)
+	repos := manyRepos(api)
+	api.On("GetRateLimit").Return(&client.RateLimit{Limit: 5000, Remaining: 21}, nil)
+	collector := newCollector(api)
+	reported := record(collector)
+
+	// When
+	usage, err := collector.Collect(context.Background(), repos)
+
+	// Then: two calls per repository were needed, and none were made
+	var limitErr RateLimitError
+	require.ErrorAs(t, err, &limitErr)
+	assert.Equal(t, uint(22), limitErr.Needed)
+	assert.Nil(t, usage)
+	assert.Empty(t, reported.messages)
+	api.AssertNotCalled(t, "GetWorkflows", mock.Anything)
+}
+
+func TestCollector_IsQuietForSmallCollections(t *testing.T) {
+	// Given
+	api := new(apiMock)
+	busyRepo(api, repo, progressThreshold)
+	plentyOfBudget(api)
+	collector := newCollector(api)
+	reported := record(collector)
+
+	// When
+	_, err := collector.Collect(context.Background(), []*client.Repository{repo})
+
+	// Then
+	require.NoError(t, err)
+	assert.Empty(t, reported.messages)
+	assert.Empty(t, reported.done)
+}
+
+func TestCollector_DoesNotForewarnWhenBudgetIsShort(t *testing.T) {
+	// Given
+	api := new(apiMock)
+	busyRepo(api, repo, progressThreshold+1)
+	api.On("GetRateLimit").Return(&client.RateLimit{Limit: 5000, Remaining: 1}, nil)
+	collector := newCollector(api)
+	reported := record(collector)
+
+	// When
+	_, err := collector.Collect(context.Background(), []*client.Repository{repo})
+
+	// Then
+	require.ErrorAs(t, err, new(RateLimitError))
+	assert.Empty(t, reported.messages)
+}
+
+func TestCollector_WorksWithoutHooks(t *testing.T) {
+	// Given
+	api := new(apiMock)
+	busyRepo(api, repo, progressThreshold+1)
+	plentyOfBudget(api)
+
+	// When
+	usage, err := newCollector(api).Collect(context.Background(), []*client.Repository{repo})
+
+	// Then
+	require.NoError(t, err)
+	assert.Equal(t, client.WorkflowUsage{ci: 0}, usage[repo])
+}
+
+func TestRoughly(t *testing.T) {
+	tests := []struct {
+		d    time.Duration
+		want string
+	}{
+		{d: 0, want: "0 seconds"},
+		{d: time.Second, want: "1 second"},
+		{d: 2800 * time.Millisecond, want: "3 seconds"},
+		{d: 59 * time.Second, want: "59 seconds"},
+		{d: 59500 * time.Millisecond, want: "1 minute"},
+		{d: 60 * time.Second, want: "1 minute"},
+		{d: 89 * time.Second, want: "1 minute"},
+		{d: 90 * time.Second, want: "2 minutes"},
+		{d: 59*time.Minute + 29*time.Second, want: "59 minutes"},
+		{d: 59*time.Minute + 30*time.Second, want: "1 hour"},
+		{d: time.Hour, want: "1 hour"},
+		{d: time.Hour + 5*time.Minute, want: "1 hour 5 minutes"},
+		{d: 2*time.Hour + 61*time.Minute, want: "3 hours 1 minute"},
+		{d: 2*time.Hour + 59*time.Minute + 45*time.Second, want: "3 hours"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.want, func(t *testing.T) {
+			assert.Equal(t, tc.want, roughly(tc.d))
+		})
+	}
 }
 
 func TestCollector_StopsFetchingAfterAFailure(t *testing.T) {

@@ -29,6 +29,10 @@ How it works, and what that means for the numbers:
   its requests to stay within GitHub's rate limits, waits and retries when GitHub asks it to, and refuses up front if
   the remaining API budget looks too small for the repositories requested. That check is an estimate, since the
   number of jobs per commit is not known until they are fetched.
+- Large collections say what they are doing on stderr: listing many repositories, with a running count; then the
+  number of commits, API calls and rough time the fetch will take, with a running count of commits fetched. On a
+  terminal the count is redrawn in place; elsewhere a line is printed every tenth. The report itself goes to stdout,
+  so `--output=tsv` stays clean.
 
 I wrote a version of this extension before the Golang support was available for `gh`, which is still available [here](https://github.com/geoffreywiseman/gh-actuse).
 

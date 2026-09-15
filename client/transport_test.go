@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -24,7 +25,7 @@ type throttleLog struct {
 // testThrottle returns a throttle that records requested sleeps and notifications instead of waiting or printing.
 func testThrottle(now time.Time) (*throttle, *throttleLog) {
 	log := &throttleLog{}
-	t := newThrottle(http.DefaultTransport)
+	t := newThrottle(http.DefaultTransport, io.Discard)
 	t.now = func() time.Time { return now }
 	t.sleep = func(_ context.Context, d time.Duration) error {
 		log.sleeps = append(log.sleeps, d)

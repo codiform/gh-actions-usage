@@ -13,12 +13,16 @@ import (
 	"time"
 
 	gogherrors "github.com/cli/go-gh/v2/pkg/api"
+	"github.com/cli/go-gh/v2/pkg/term"
 	"github.com/geoffreywiseman/gh-actions-usage/client"
 	"github.com/geoffreywiseman/gh-actions-usage/format"
 	"github.com/geoffreywiseman/gh-actions-usage/usage"
 )
 
 var gh client.Client
+
+// status is where progress of a collection is reported, apart from the report itself on stdout.
+var status = &statusWriter{Writer: os.Stderr}
 
 // monthLayout is the format of the --month flag, a year and month such as 2026-09.
 const monthLayout = "2006-01"
@@ -64,7 +68,7 @@ func (e InvalidMonthError) Error() string {
 func main() {
 	fmt.Printf("GitHub Actions Usage (%s)\n\n", getVersion())
 
-	gh = client.New()
+	gh = client.New(status)
 
 	now := time.Now()
 	cfg := &config{w: os.Stdout}
@@ -127,6 +131,7 @@ func tryDisplayCurrentRepo(cfg config) {
 		return
 	}
 	repoFlowUsage, err := collectUsage(cfg, []*client.Repository{repo})
+	status.separate()
 	if err != nil {
 		printError(cfg, "Error collecting usage", err)
 		return
@@ -149,6 +154,7 @@ func tryDisplayAllSpecified(cfg config, targets []string) {
 		targetsList = append(targetsList, list...)
 	}
 	repoFlowUsage, err := collectUsage(cfg, targetsList)
+	status.separate()
 	if err != nil {
 		printError(cfg, "Error collecting usage", err)
 		return
@@ -187,15 +193,19 @@ func parseMonth(value string, now time.Time) (time.Time, error) {
 	return month, nil
 }
 
-// collectUsage computes the usage of each repository's workflows for the configured billing period.
+// collectUsage computes the usage of each repository's workflows for the configured billing period. Progress
+// goes to stderr, so that the report on stdout stays clean for machine-readable formats.
 func collectUsage(cfg config, repos []*client.Repository) (client.RepoUsage, error) {
+	terminal := term.IsTerminal(os.Stderr)
 	collector := usage.Collector{
 		API:  &gh,
 		From: cfg.from,
 		To:   cfg.to,
 		Notify: func(message string) {
-			_, _ = fmt.Fprintln(os.Stderr, message)
+			_, _ = fmt.Fprintln(status, message)
 		},
+		ListingProgress: newProgressReporter(status, terminal, "repositories listed").update,
+		FetchProgress:   newProgressReporter(status, terminal, "commits fetched").update,
 	}
 	return collector.Collect(context.Background(), repos) //nolint:wrapcheck // caller prints the error as-is
 }
@@ -297,6 +307,9 @@ func mapOwner(repos repoMap, userName string) error {
 		list = make([]*client.Repository, 0)
 	}
 
+	// An owner with thousands of repositories takes a while to page through; say so on stderr, where the
+	// collector's progress goes too.
+	_, _ = fmt.Fprintf(status, "Listing repositories of %s...\n", user.Login)
 	ors, err := gh.GetAllRepositories(user)
 	if err != nil {
 		return fmt.Errorf("could not get repositories: %w", err)

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -14,8 +13,9 @@ import (
 )
 
 const (
-	// requestsPerSecond keeps the extension under GitHub's secondary limit of roughly 900 REST points per minute.
-	requestsPerSecond = 10
+	// RequestsPerSecond keeps the extension under GitHub's secondary limit of roughly 900 REST points per minute.
+	// It is exported so that callers can estimate how long a known number of requests will take.
+	RequestsPerSecond = 10
 	// requestBurst is the number of requests that may be issued back-to-back before the limiter starts pacing.
 	requestBurst = 10
 	// maxAttempts is the total number of times a request will be tried when GitHub reports it as rate limited.
@@ -44,18 +44,17 @@ type throttle struct {
 	notify func(wait time.Duration)
 }
 
-func newThrottle(next http.RoundTripper) *throttle {
+// newThrottle paces requests through next, and writes a notice to notices before each backoff.
+func newThrottle(next http.RoundTripper, notices io.Writer) *throttle {
 	return &throttle{
 		next:    next,
-		limiter: rate.NewLimiter(requestsPerSecond, requestBurst),
+		limiter: rate.NewLimiter(RequestsPerSecond, requestBurst),
 		now:     time.Now,
 		sleep:   sleepContext,
-		notify:  notifyStderr,
+		notify: func(wait time.Duration) {
+			_, _ = fmt.Fprintf(notices, "GitHub rate limit reached; waiting %s before retrying...\n", wait.Round(time.Second))
+		},
 	}
-}
-
-func notifyStderr(wait time.Duration) {
-	_, _ = fmt.Fprintf(os.Stderr, "GitHub rate limit reached; waiting %s before retrying...\n", wait.Round(time.Second))
 }
 
 // RoundTrip implements http.RoundTripper
