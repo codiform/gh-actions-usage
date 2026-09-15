@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"sync"
 	"time"
 )
 
@@ -15,29 +16,45 @@ const (
 	percent       = 100
 )
 
-// statusWriter is the writer for everything said about a collection's progress on stderr. It remembers whether
-// anything was said, so that the report can be set apart from it by a blank line only when there is something
-// to set it apart from.
+// statusWriter is the writer for everything said about a collection's progress on stderr: the collector's
+// messages and counters, and the transport's rate-limit notices, which can arrive from any goroutine. It keeps
+// a counter being redrawn in place from being overwritten by a message, by finishing the line first, and it
+// remembers whether anything was said, so that what follows can be set apart by a blank line only when there
+// is something to set it apart from.
 type statusWriter struct {
 	io.Writer
 
-	written bool
+	mu      sync.Mutex
+	written bool // anything at all since the last separation
+	open    bool // the last write left its line unfinished, as an in-place counter does
 }
 
 func (s *statusWriter) Write(p []byte) (int, error) {
-	if len(p) > 0 {
-		s.written = true
+	if len(p) == 0 {
+		return 0, nil
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.open && p[0] != '\r' {
+		_, _ = s.Writer.Write([]byte{'\n'})
+	}
+	s.written = true
+	s.open = p[len(p)-1] != '\n'
 	return s.Writer.Write(p) //nolint:wrapcheck // a plain pass-through
 }
 
-// separate ends the progress output with a blank line if there was any, and forgets it, so that a later
-// collection starts afresh.
+// separate finishes any unfinished line and ends the status output with a blank line if there was any, then
+// forgets it all, so that a later collection starts afresh.
 func (s *statusWriter) separate() {
-	if s.written {
-		_, _ = fmt.Fprintln(s)
-		s.written = false
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.open {
+		_, _ = s.Writer.Write([]byte{'\n'})
 	}
+	if s.written {
+		_, _ = s.Writer.Write([]byte{'\n'})
+	}
+	s.open, s.written = false, false
 }
 
 // progressReporter renders the collector's commit counter on stderr. On a terminal the line is rewritten in
@@ -74,10 +91,11 @@ func (p *progressReporter) rewrite(done, total uint) {
 		return
 	}
 	p.last = now
-	_, _ = fmt.Fprintf(p.w, "\r%s", p.line(done, total))
+	end := ""
 	if done == total {
-		_, _ = fmt.Fprintln(p.w)
+		end = "\n"
 	}
+	_, _ = fmt.Fprintf(p.w, "\r%s%s", p.line(done, total), end)
 }
 
 func (p *progressReporter) step(done, total uint) {

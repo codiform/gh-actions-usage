@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -45,18 +44,17 @@ type throttle struct {
 	notify func(wait time.Duration)
 }
 
-func newThrottle(next http.RoundTripper) *throttle {
+// newThrottle paces requests through next, and writes a notice to notices before each backoff.
+func newThrottle(next http.RoundTripper, notices io.Writer) *throttle {
 	return &throttle{
 		next:    next,
 		limiter: rate.NewLimiter(RequestsPerSecond, requestBurst),
 		now:     time.Now,
 		sleep:   sleepContext,
-		notify:  notifyStderr,
+		notify: func(wait time.Duration) {
+			_, _ = fmt.Fprintf(notices, "GitHub rate limit reached; waiting %s before retrying...\n", wait.Round(time.Second))
+		},
 	}
-}
-
-func notifyStderr(wait time.Duration) {
-	_, _ = fmt.Fprintf(os.Stderr, "GitHub rate limit reached; waiting %s before retrying...\n", wait.Round(time.Second))
 }
 
 // RoundTrip implements http.RoundTripper

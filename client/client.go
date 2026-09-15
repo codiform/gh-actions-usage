@@ -4,6 +4,7 @@ package client
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/cli/go-gh/v2/pkg/api"
@@ -11,9 +12,10 @@ import (
 )
 
 // New creates a new Client instance, initialized with a GH RESTClient that paces requests to stay within
-// GitHub's rate limits and retries requests that are rejected as rate limited.
-func New() Client {
-	rest, err := api.NewRESTClient(api.ClientOptions{Transport: newThrottle(http.DefaultTransport)})
+// GitHub's rate limits and retries requests that are rejected as rate limited. A notice is written to notices
+// before each wait for a rate limit, so that the user can see why the command has paused.
+func New(notices io.Writer) Client {
+	rest, err := api.NewRESTClient(api.ClientOptions{Transport: newThrottle(http.DefaultTransport, notices)})
 	if err != nil {
 		panic(err)
 	}

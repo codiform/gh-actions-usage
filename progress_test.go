@@ -100,6 +100,34 @@ func TestProgressReporter_IgnoresAnEmptyTotal(t *testing.T) {
 	assert.Empty(t, out.String())
 }
 
+func TestStatusWriter_FinishesAnOpenCounterBeforeAMessage(t *testing.T) {
+	// Given: a counter drawn in place, twice
+	var out bytes.Buffer
+	status := &statusWriter{Writer: &out}
+	_, _ = status.Write([]byte("\r1 of 3"))
+	_, _ = status.Write([]byte("\r2 of 3"))
+
+	// When: a rate-limit notice arrives, and the counter goes on
+	_, _ = status.Write([]byte("waiting 5s...\n"))
+	_, _ = status.Write([]byte("\r3 of 3\n"))
+
+	// Then: redraws stay on their line, the notice gets a line of its own, and the counter resumes below it
+	assert.Equal(t, "\r1 of 3\r2 of 3\nwaiting 5s...\n\r3 of 3\n", out.String())
+}
+
+func TestStatusWriter_SeparatesAfterAnOpenCounter(t *testing.T) {
+	// Given: a collection that failed mid-counter
+	var out bytes.Buffer
+	status := &statusWriter{Writer: &out}
+	_, _ = status.Write([]byte("\r1 of 3"))
+
+	// When
+	status.separate()
+
+	// Then: the line is finished, then the blank line
+	assert.Equal(t, "\r1 of 3\n\n", out.String())
+}
+
 func TestStatusWriter_SeparatesOnlyAfterOutput(t *testing.T) {
 	// Given
 	var out bytes.Buffer

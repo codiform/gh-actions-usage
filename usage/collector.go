@@ -235,19 +235,19 @@ func forewarning(plans []*repoPlan, commits, needed uint) string {
 // roughly renders a duration estimate in the coarsest unit that still says something: seconds under a minute,
 // minutes under an hour, and hours and minutes beyond that.
 func roughly(d time.Duration) string {
-	switch {
-	case d < time.Minute:
-		return plural(int(d.Round(time.Second)/time.Second), "second")
-	case d < time.Hour:
-		return plural(int(d.Round(time.Minute)/time.Minute), "minute")
-	default:
-		d = d.Round(time.Minute)
-		hours := plural(int(d/time.Hour), "hour")
-		if minutes := int(d % time.Hour / time.Minute); minutes > 0 {
-			return hours + " " + plural(minutes, "minute")
-		}
-		return hours
+	d = d.Round(time.Second)
+	if d < time.Minute {
+		return plural(int(d/time.Second), "second")
 	}
+	d = d.Round(time.Minute)
+	if d < time.Hour {
+		return plural(int(d/time.Minute), "minute")
+	}
+	hours := plural(int(d/time.Hour), "hour")
+	if minutes := int(d % time.Hour / time.Minute); minutes > 0 {
+		return hours + " " + plural(minutes, "minute")
+	}
+	return hours
 }
 
 func plural(n int, unit string) string {

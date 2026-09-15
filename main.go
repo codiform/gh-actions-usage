@@ -68,7 +68,7 @@ func (e InvalidMonthError) Error() string {
 func main() {
 	fmt.Printf("GitHub Actions Usage (%s)\n\n", getVersion())
 
-	gh = client.New()
+	gh = client.New(status)
 
 	now := time.Now()
 	cfg := &config{w: os.Stdout}
@@ -131,11 +131,11 @@ func tryDisplayCurrentRepo(cfg config) {
 		return
 	}
 	repoFlowUsage, err := collectUsage(cfg, []*client.Repository{repo})
+	status.separate()
 	if err != nil {
 		printError(cfg, "Error collecting usage", err)
 		return
 	}
-	status.separate()
 	if cfg.skip {
 		skipUnused(repoFlowUsage)
 	}
@@ -154,11 +154,11 @@ func tryDisplayAllSpecified(cfg config, targets []string) {
 		targetsList = append(targetsList, list...)
 	}
 	repoFlowUsage, err := collectUsage(cfg, targetsList)
+	status.separate()
 	if err != nil {
 		printError(cfg, "Error collecting usage", err)
 		return
 	}
-	status.separate()
 	if cfg.skip {
 		skipUnused(repoFlowUsage)
 	}
