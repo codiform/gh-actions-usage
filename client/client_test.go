@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"net/url"
 	"testing"
 
@@ -141,6 +142,62 @@ func TestClient_GetUser_NotFound(t *testing.T) {
 	// Then
 	require.NoError(t, err)
 	assert.Nil(t, repo)
+}
+
+func TestClient_GetWorkflows_FetchesTheNextPageAfterAFullOne(t *testing.T) {
+	// Given: a full first page and a short second one
+	rest, client := getTestClient()
+	repo := Repository{ID: 1, Name: "gh-actions-usage", FullName: testRepoFullName}
+	rest.On("Get", "repos/"+testRepoFullName+"/actions/workflows?per_page=100&page=1", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			wp := args.Get(1).(*workflowPage)
+			for i := range perPage {
+				wp.Workflows = append(wp.Workflows, Workflow{ID: uint(i), Name: fmt.Sprintf("Workflow %d", i)})
+			}
+		})
+	rest.On("Get", "repos/"+testRepoFullName+"/actions/workflows?per_page=100&page=2", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			wp := args.Get(1).(*workflowPage)
+			wp.Workflows = append(wp.Workflows, Workflow{ID: perPage, Name: "Workflow 100"})
+		})
+
+	// When
+	workflows, err := client.GetWorkflows(repo)
+
+	// Then: both pages are returned, and no third page is requested
+	require.NoError(t, err)
+	assert.Len(t, workflows, perPage+1)
+	rest.AssertNumberOfCalls(t, "Get", 2)
+}
+
+func TestClient_GetAllRepositories_FetchesTheNextPageAfterAFullOne(t *testing.T) {
+	// Given: a full first page and a short second one
+	rest, client := getTestClient()
+	rest.On("Get", "orgs/codiform/repos?per_page=100&page=1", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			ars := args.Get(1).(*[]*Repository)
+			for i := range perPage {
+				*ars = append(*ars, &Repository{ID: uint(i), Name: fmt.Sprintf("repo-%d", i)})
+			}
+		})
+	rest.On("Get", "orgs/codiform/repos?per_page=100&page=2", mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			ars := args.Get(1).(*[]*Repository)
+			*ars = append(*ars, &Repository{ID: perPage, Name: "repo-100"})
+		})
+	owner := &User{ID: 1, Login: "codiform", Type: "Organization"}
+
+	// When
+	repos, err := client.GetAllRepositories(owner)
+
+	// Then: both pages are returned, and no third page is requested
+	require.NoError(t, err)
+	assert.Len(t, repos, perPage+1)
+	rest.AssertNumberOfCalls(t, "Get", 2)
 }
 
 // Success Case
