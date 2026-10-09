@@ -7,7 +7,7 @@ toolchain go1.27.1
 require (
 	github.com/cli/go-gh/v2 v2.16.1
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/sync v0.23.0
+	golang.org/x/sync v0.24.0
 	golang.org/x/time v0.16.0
 )
 
